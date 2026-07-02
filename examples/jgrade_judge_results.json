@@ -1,0 +1,101 @@
+{
+  "tested_level": "B1",
+  "roleplays": [
+    {
+      "roleplay_id": "rp-1",
+      "judge_results": [
+        {
+          "judge_id": "A",
+          "model_family": "claude",
+          "rating": "○",
+          "confidence": 0.82,
+          "rationale": "必要書類と期限を質問できており、窓口での目的は達成している。",
+          "evidence": ["なにがひつようですか", "いつまでにだせばいいですか"],
+          "risk_flags": []
+        },
+        {
+          "judge_id": "B",
+          "model_family": "gpt",
+          "rating": "○",
+          "confidence": 0.78,
+          "rationale": "文は単純だが、必要な質問がそろっている。",
+          "evidence": ["てつづきになにがひつようですか", "おしえてください"],
+          "risk_flags": []
+        },
+        {
+          "judge_id": "C",
+          "model_family": "gemini",
+          "rating": "◎",
+          "confidence": 0.7,
+          "rationale": "相手に必要な情報を十分に求めている。",
+          "evidence": ["ひっこししました", "いつまでにだせばいいですか"],
+          "risk_flags": []
+        }
+      ]
+    },
+    {
+      "roleplay_id": "rp-2",
+      "judge_results": [
+        {
+          "judge_id": "A",
+          "model_family": "claude",
+          "rating": "△",
+          "confidence": 0.66,
+          "rationale": "謝罪はあるが、代替案や予約変更の確認が足りない。",
+          "evidence": ["すみませんいけません", "またこんど"],
+          "risk_flags": ["重要情報の欠落"]
+        },
+        {
+          "judge_id": "B",
+          "model_family": "gpt",
+          "rating": "○",
+          "confidence": 0.55,
+          "rationale": "最低限の欠席連絡は伝わる。",
+          "evidence": ["いけません"],
+          "risk_flags": ["根拠が弱い"]
+        },
+        {
+          "judge_id": "C",
+          "model_family": "gemini",
+          "rating": "△",
+          "confidence": 0.72,
+          "rationale": "用件が断片的で、タスク達成には不足が残る。",
+          "evidence": ["またこんど"],
+          "risk_flags": ["タスク達成情報不足"]
+        }
+      ]
+    },
+    {
+      "roleplay_id": "rp-3",
+      "judge_results": [
+        {
+          "judge_id": "A",
+          "model_family": "claude",
+          "rating": "◎",
+          "confidence": 0.86,
+          "rationale": "理由説明と希望の提示が自然にできている。",
+          "evidence": ["りゆうがあります", "こちらがいいです"],
+          "risk_flags": []
+        },
+        {
+          "judge_id": "B",
+          "model_family": "gpt",
+          "rating": "○",
+          "confidence": 0.8,
+          "rationale": "軽微な乱れはあるが、交渉目的は達成できている。",
+          "evidence": ["こちらがいいです"],
+          "risk_flags": []
+        },
+        {
+          "judge_id": "C",
+          "model_family": "gemini",
+          "rating": "○",
+          "confidence": 0.76,
+          "rationale": "相手が理解できる範囲で希望を伝えている。",
+          "evidence": ["おねがいします"],
+          "risk_flags": []
+        }
+      ]
+    }
+  ]
+}

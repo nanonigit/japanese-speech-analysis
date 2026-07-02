@@ -1,0 +1,28 @@
+{
+  "sample_id": "sample-b1-001",
+  "target_cefr_level": "B1",
+  "roleplay_id": "rp-1",
+  "roleplay_task": "市役所の窓口で、転居手続きに必要な書類と提出期限を質問する。",
+  "jfs_can_do_criteria": [
+    "身近な公的手続きについて、必要な情報を質問できる。",
+    "相手の説明を受けて、次に何をすればよいか確認できる。"
+  ],
+  "raw_transcript_hiragana": "すみませんひっこししましたてつづきになにがひつようですかいつまでにだせばいいですかわからないのでおしえてください",
+  "fluency_metrics": {
+    "audio_duration_sec": 34.2,
+    "speech_ratio_pct": 72.0,
+    "mora_per_sec": 5.8,
+    "pause_count": 6,
+    "avg_pause_sec": 0.7,
+    "max_pause_sec": 1.4
+  },
+  "speaker_metadata": {
+    "first_language": "vietnamese",
+    "test_date": "2026-06-29"
+  },
+  "optional_expected_information": [
+    "必要書類を尋ねる",
+    "提出期限を尋ねる",
+    "不明点を確認する"
+  ]
+}

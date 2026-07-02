@@ -1,0 +1,36 @@
+{
+  "items": [
+    {
+      "sample_id": "sample-b1-001-rp1",
+      "tested_level": "B1",
+      "roleplay_id": "rp-1",
+      "human_rating": "○",
+      "ai_rating": "○",
+      "judge_disagreement": false
+    },
+    {
+      "sample_id": "sample-b1-001-rp2",
+      "tested_level": "B1",
+      "roleplay_id": "rp-2",
+      "human_rating": "△",
+      "ai_rating": "△",
+      "judge_disagreement": false
+    },
+    {
+      "sample_id": "sample-b1-001-rp3",
+      "tested_level": "B1",
+      "roleplay_id": "rp-3",
+      "human_rating": "◎",
+      "ai_rating": "○",
+      "judge_disagreement": true
+    },
+    {
+      "sample_id": "sample-a2-002-rp1",
+      "tested_level": "A2",
+      "roleplay_id": "rp-1",
+      "human_rating": "○",
+      "ai_rating": "△",
+      "judge_disagreement": true
+    }
+  ]
+}

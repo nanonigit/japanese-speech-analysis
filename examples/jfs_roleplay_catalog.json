@@ -1,0 +1,221 @@
+{
+  "name": "official_jfs_roleplay_samples",
+  "description": "Official Japan Foundation JF Standard role-play speaking interaction samples for local evaluation and calibration.",
+  "source_page_url": "https://www.jfstandard.jpf.go.jp/roleplay/ja/render.do",
+  "source_sample_page_url": "https://www.jfstandard.jpf.go.jp/sample/ja/render.do",
+  "site_policy_url": "https://www.jfstandard.jpf.go.jp/sitepolicy/ja/render.do",
+  "publisher": "The Japan Foundation Japanese-Language Institute, Urawa",
+  "license_note": "The JF Standard site policy states that site content may not be reproduced or reprinted beyond private use except as legally permitted. Keep downloaded audio/PDF files local and out of git.",
+  "coverage_note": "The official role-play samples cover A2, B1, B2, and C1. The JF role-play test can estimate A1 to C1-or-above, but C2 role-play samples are not provided by this official source.",
+  "levels": ["A2", "B1", "B2", "C1"],
+  "samples": [
+    {
+      "sample_id": "jfs-rpt-a2-task1-nijumaru-01",
+      "human_cefr": "A2",
+      "human_rating": "◎",
+      "task_id": "A2-task1",
+      "roleplay_task": "日本のデパートで気に入った服のサイズが合わないため、店員に相談する。",
+      "jfs_can_do_criteria": [
+        "身近な買い物場面で、簡単な語句や表現を使って必要な相談ができる。",
+        "相手の助けを得ながら、欲しいものや困っていることを伝えられる。"
+      ],
+      "audio_filename": "A2_nijumaru01_JFS_RPT.mp3",
+      "audio_url": "https://www.jfstandard.jpf.go.jp/mp3/jfs/A2_nijumaru01_JFS_RPT.mp3",
+      "evaluation_pdf_filename": "202311_A2_1.pdf",
+      "evaluation_pdf_url": "https://www.jfstandard.jpf.go.jp/pdf/roleplay/202311_A2_1.pdf",
+      "sample_page_url": "https://www.jfstandard.jpf.go.jp/evaluation/exchange/a2_1.html"
+    },
+    {
+      "sample_id": "jfs-rpt-a2-task2-nijumaru-01",
+      "human_cefr": "A2",
+      "human_rating": "◎",
+      "task_id": "A2-task2",
+      "roleplay_task": "帰国前日に体調が悪くなり病院に来た場面で、医者の質問に答える。",
+      "jfs_can_do_criteria": [
+        "健康や体調など身近で具体的な場面について、短いやりとりで必要な情報を伝えられる。",
+        "相手の質問に対して、簡単な文で症状や状況を説明できる。"
+      ],
+      "audio_filename": "A2_nijumaru02_JFS_RPT.mp3",
+      "audio_url": "https://www.jfstandard.jpf.go.jp/mp3/jfs/A2_nijumaru02_JFS_RPT.mp3",
+      "evaluation_pdf_filename": "202411_A2_3.pdf",
+      "evaluation_pdf_url": "https://www.jfstandard.jpf.go.jp/pdf/roleplay/202411_A2_3.pdf",
+      "sample_page_url": "https://www.jfstandard.jpf.go.jp/evaluation/exchange/a2_2_1.html"
+    },
+    {
+      "sample_id": "jfs-rpt-a2-task2-nijumaru-02",
+      "human_cefr": "A2",
+      "human_rating": "◎",
+      "task_id": "A2-task2",
+      "roleplay_task": "帰国前日に体調が悪くなり病院に来た場面で、医者の質問に答える。",
+      "jfs_can_do_criteria": [
+        "健康や体調など身近で具体的な場面について、短いやりとりで必要な情報を伝えられる。",
+        "相手の質問に対して、簡単な文で症状や状況を説明できる。"
+      ],
+      "audio_filename": "A2_nijumaru03_JFS_RPT.mp3",
+      "audio_url": "https://www.jfstandard.jpf.go.jp/mp3/jfs/A2_nijumaru03_JFS_RPT.mp3",
+      "evaluation_pdf_filename": "202411_A2_4.pdf",
+      "evaluation_pdf_url": "https://www.jfstandard.jpf.go.jp/pdf/roleplay/202411_A2_4.pdf",
+      "sample_page_url": "https://www.jfstandard.jpf.go.jp/evaluation/exchange/a2_2_2.html"
+    },
+    {
+      "sample_id": "jfs-rpt-a2-task2-maru-01",
+      "human_cefr": "A2",
+      "human_rating": "○",
+      "task_id": "A2-task2",
+      "roleplay_task": "帰国前日に体調が悪くなり病院に来た場面で、医者の質問に答える。",
+      "jfs_can_do_criteria": [
+        "健康や体調など身近で具体的な場面について、短いやりとりで必要な情報を伝えられる。",
+        "相手の質問に対して、簡単な文で症状や状況を説明できる。"
+      ],
+      "audio_filename": "A2_maru01_JFS_RPT.mp3",
+      "audio_url": "https://www.jfstandard.jpf.go.jp/mp3/jfs/A2_maru01_JFS_RPT.mp3",
+      "evaluation_pdf_filename": "202311_A2_2.pdf",
+      "evaluation_pdf_url": "https://www.jfstandard.jpf.go.jp/pdf/roleplay/202311_A2_2.pdf",
+      "sample_page_url": "https://www.jfstandard.jpf.go.jp/evaluation/exchange/a2_2.html"
+    },
+    {
+      "sample_id": "jfs-rpt-b1-nijumaru-01",
+      "human_cefr": "B1",
+      "human_rating": "◎",
+      "task_id": "B1-task1",
+      "roleplay_task": "日本人の友達に、自分の国の有名な料理について、どんな料理か、どう作るかなどを詳しく説明する。",
+      "jfs_can_do_criteria": [
+        "身近な話題について、出来事や理由をある程度まとまりを持って説明できる。",
+        "相手に必要な背景情報を補いながら、具体的な内容を伝えられる。"
+      ],
+      "audio_filename": "B1_nijumaru01_JFS_RPT.mp3",
+      "audio_url": "https://www.jfstandard.jpf.go.jp/mp3/jfs/B1_nijumaru01_JFS_RPT.mp3",
+      "evaluation_pdf_filename": "202311_B1.pdf",
+      "evaluation_pdf_url": "https://www.jfstandard.jpf.go.jp/pdf/roleplay/202311_B1.pdf",
+      "sample_page_url": "https://www.jfstandard.jpf.go.jp/evaluation/exchange/b1_1.html"
+    },
+    {
+      "sample_id": "jfs-rpt-b1-maru-01",
+      "human_cefr": "B1",
+      "human_rating": "○",
+      "task_id": "B1-task1",
+      "roleplay_task": "日本人の友達に、自分の国の有名な料理について、どんな料理か、どう作るかなどを詳しく説明する。",
+      "jfs_can_do_criteria": [
+        "身近な話題について、出来事や理由をある程度まとまりを持って説明できる。",
+        "相手に必要な背景情報を補いながら、具体的な内容を伝えられる。"
+      ],
+      "audio_filename": "B1_maru01_JFS_RPT.mp3",
+      "audio_url": "https://www.jfstandard.jpf.go.jp/mp3/jfs/B1_maru01_JFS_RPT.mp3",
+      "evaluation_pdf_filename": "202411_B1_3.pdf",
+      "evaluation_pdf_url": "https://www.jfstandard.jpf.go.jp/pdf/roleplay/202411_B1_3.pdf",
+      "sample_page_url": "https://www.jfstandard.jpf.go.jp/evaluation/exchange/b1_1_2.html"
+    },
+    {
+      "sample_id": "jfs-rpt-b1-sankaku-01",
+      "human_cefr": "B1",
+      "human_rating": "△",
+      "task_id": "B1-task1",
+      "roleplay_task": "日本人の友達に、自分の国の有名な料理について、どんな料理か、どう作るかなどを詳しく説明する。",
+      "jfs_can_do_criteria": [
+        "身近な話題について、出来事や理由をある程度まとまりを持って説明できる。",
+        "相手に必要な背景情報を補いながら、具体的な内容を伝えられる。"
+      ],
+      "audio_filename": "B1_sankaku01_JFS_RPT.mp3",
+      "audio_url": "https://www.jfstandard.jpf.go.jp/mp3/jfs/B1_sankaku01_JFS_RPT.mp3",
+      "evaluation_pdf_filename": "202311_B1_1.pdf",
+      "evaluation_pdf_url": "https://www.jfstandard.jpf.go.jp/pdf/roleplay/202311_B1_1.pdf",
+      "sample_page_url": "https://www.jfstandard.jpf.go.jp/evaluation/exchange/b1_2.html"
+    },
+    {
+      "sample_id": "jfs-rpt-b1-sankaku-02",
+      "human_cefr": "B1",
+      "human_rating": "△",
+      "task_id": "B1-task1",
+      "roleplay_task": "日本人の友達に、自分の国の有名な料理について、どんな料理か、どう作るかなどを詳しく説明する。",
+      "jfs_can_do_criteria": [
+        "身近な話題について、出来事や理由をある程度まとまりを持って説明できる。",
+        "相手に必要な背景情報を補いながら、具体的な内容を伝えられる。"
+      ],
+      "audio_filename": "B1_sankaku02_JFS_RPT.mp3",
+      "audio_url": "https://www.jfstandard.jpf.go.jp/mp3/jfs/B1_sankaku02_JFS_RPT.mp3",
+      "evaluation_pdf_filename": "202311_B1_2.pdf",
+      "evaluation_pdf_url": "https://www.jfstandard.jpf.go.jp/pdf/roleplay/202311_B1_2.pdf",
+      "sample_page_url": "https://www.jfstandard.jpf.go.jp/evaluation/exchange/b1_3.html"
+    },
+    {
+      "sample_id": "jfs-rpt-b2-nijumaru-01",
+      "human_cefr": "B2",
+      "human_rating": "◎",
+      "task_id": "B2-task1",
+      "roleplay_task": "学校で使う教科書を新しいものに変えるか、今までのものを使い続けるかを決め、理由を示しながら同僚と話す。",
+      "jfs_can_do_criteria": [
+        "具体的・抽象的な話題について、自分の立場を明確にし、理由や根拠を述べながらやりとりできる。",
+        "相手の意見を受けて、自分の考えを比較的流暢に説明・調整できる。"
+      ],
+      "audio_filename": "B2_nijumaru01_JFS_RPT.mp3",
+      "audio_url": "https://www.jfstandard.jpf.go.jp/mp3/jfs/B2_nijumaru01_JFS_RPT.mp3",
+      "evaluation_pdf_filename": "202311_B2_1.pdf",
+      "evaluation_pdf_url": "https://www.jfstandard.jpf.go.jp/pdf/roleplay/202311_B2_1.pdf",
+      "sample_page_url": "https://www.jfstandard.jpf.go.jp/evaluation/exchange/b2_1.html"
+    },
+    {
+      "sample_id": "jfs-rpt-b2-maru-01",
+      "human_cefr": "B2",
+      "human_rating": "○",
+      "task_id": "B2-task1",
+      "roleplay_task": "学校で使う教科書を新しいものに変えるか、今までのものを使い続けるかを決め、理由を示しながら同僚と話す。",
+      "jfs_can_do_criteria": [
+        "具体的・抽象的な話題について、自分の立場を明確にし、理由や根拠を述べながらやりとりできる。",
+        "相手の意見を受けて、自分の考えを比較的流暢に説明・調整できる。"
+      ],
+      "audio_filename": "B2_maru01_JFS_RPT.mp3",
+      "audio_url": "https://www.jfstandard.jpf.go.jp/mp3/jfs/B2_maru01_JFS_RPT.mp3",
+      "evaluation_pdf_filename": "202411_B2_3.pdf",
+      "evaluation_pdf_url": "https://www.jfstandard.jpf.go.jp/pdf/roleplay/202411_B2_3.pdf",
+      "sample_page_url": "https://www.jfstandard.jpf.go.jp/evaluation/exchange/b2_1_2.html"
+    },
+    {
+      "sample_id": "jfs-rpt-b2-sankaku-01",
+      "human_cefr": "B2",
+      "human_rating": "△",
+      "task_id": "B2-task1",
+      "roleplay_task": "学校で使う教科書を新しいものに変えるか、今までのものを使い続けるかを決め、理由を示しながら同僚と話す。",
+      "jfs_can_do_criteria": [
+        "具体的・抽象的な話題について、自分の立場を明確にし、理由や根拠を述べながらやりとりできる。",
+        "相手の意見を受けて、自分の考えを比較的流暢に説明・調整できる。"
+      ],
+      "audio_filename": "B2_sankaku01_JFS_RPT.mp3",
+      "audio_url": "https://www.jfstandard.jpf.go.jp/mp3/jfs/B2_sankaku01_JFS_RPT.mp3",
+      "evaluation_pdf_filename": "202311_B2_2.pdf",
+      "evaluation_pdf_url": "https://www.jfstandard.jpf.go.jp/pdf/roleplay/202311_B2_2.pdf",
+      "sample_page_url": "https://www.jfstandard.jpf.go.jp/evaluation/exchange/b2_2.html"
+    },
+    {
+      "sample_id": "jfs-rpt-c1-maru-01",
+      "human_cefr": "C1",
+      "human_rating": "○",
+      "task_id": "C1-task1",
+      "roleplay_task": "採用面接の最後に、自分の国の社会問題、その影響や背景について質問され、幅広い視点から説明する。",
+      "jfs_can_do_criteria": [
+        "社会的な話題を扱ったフォーマルなインタビューで、流暢に明快にやりとりできる。",
+        "問題の背景や影響を筋道立てて詳しく説明し、掘り下げた質問にも対応できる。"
+      ],
+      "audio_filename": "C1_maru01_JFS_PRT.mp3",
+      "audio_url": "https://www.jfstandard.jpf.go.jp/mp3/jfs/C1_maru01_JFS_PRT.mp3",
+      "evaluation_pdf_filename": "202311_C1_1.pdf",
+      "evaluation_pdf_url": "https://www.jfstandard.jpf.go.jp/pdf/roleplay/202311_C1_1.pdf",
+      "sample_page_url": "https://www.jfstandard.jpf.go.jp/evaluation/exchange/c1_1.html"
+    },
+    {
+      "sample_id": "jfs-rpt-c1-sankaku-01",
+      "human_cefr": "C1",
+      "human_rating": "△",
+      "task_id": "C1-task1",
+      "roleplay_task": "採用面接の最後に、自分の国の社会問題、その影響や背景について質問され、幅広い視点から説明する。",
+      "jfs_can_do_criteria": [
+        "社会的な話題を扱ったフォーマルなインタビューで、流暢に明快にやりとりできる。",
+        "問題の背景や影響を筋道立てて詳しく説明し、掘り下げた質問にも対応できる。"
+      ],
+      "audio_filename": "C1_sankaku01_JFS_PRT.mp3",
+      "audio_url": "https://www.jfstandard.jpf.go.jp/mp3/jfs/C1_sankaku01_JFS_PRT.mp3",
+      "evaluation_pdf_filename": "202311_C1_2.pdf",
+      "evaluation_pdf_url": "https://www.jfstandard.jpf.go.jp/pdf/roleplay/202311_C1_2.pdf",
+      "sample_page_url": "https://www.jfstandard.jpf.go.jp/evaluation/exchange/c1_2.html"
+    }
+  ]
+}

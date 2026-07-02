@@ -1,0 +1,64 @@
+{
+  "sample_id": "local-smoke-b1-001",
+  "tested_level": "B1",
+  "speaker_metadata": {
+    "first_language": "mixed",
+    "note": "既存サンプル音声を使ったローカル疎通確認用"
+  },
+  "roleplays": [
+    {
+      "roleplay_id": "rp-1",
+      "audio_path": "audio/burmese_japanese_1min.mp3",
+      "roleplay_task": "経験した出来事を順序立てて説明する。",
+      "jfs_can_do_criteria": [
+        "身近な話題について、出来事の流れをある程度まとまって話せる。"
+      ],
+      "optional_expected_information": [
+        "誰が何をしたか",
+        "出来事の流れ",
+        "話し手の考え"
+      ],
+      "expected_hiragana_keywords": [
+        "わたし",
+        "そふ",
+        "まんご"
+      ]
+    },
+    {
+      "roleplay_id": "rp-2",
+      "audio_path": "audio/indonesian_japanese_1min.mp3",
+      "roleplay_task": "家族や身近な人について説明する。",
+      "jfs_can_do_criteria": [
+        "身近な人物について、特徴や過去の出来事を説明できる。"
+      ],
+      "optional_expected_information": [
+        "人物の紹介",
+        "特徴",
+        "具体的なエピソード"
+      ],
+      "expected_hiragana_keywords": [
+        "わたし",
+        "いもうと",
+        "います"
+      ]
+    },
+    {
+      "roleplay_id": "rp-3",
+      "audio_path": "audio/vietnamese_japanese_1min.mp3",
+      "roleplay_task": "社会的な話題について、自分の考えと理由を述べる。",
+      "jfs_can_do_criteria": [
+        "関心のある社会的な話題について、理由を添えて意見を述べられる。"
+      ],
+      "optional_expected_information": [
+        "話題の提示",
+        "自分の意見",
+        "理由や具体例"
+      ],
+      "expected_hiragana_keywords": [
+        "わたし",
+        "にっぽん",
+        "べと"
+      ]
+    }
+  ]
+}

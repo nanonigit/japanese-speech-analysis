@@ -50,13 +50,20 @@ def detect_speech_and_pauses(vad_model, audio_np, duration):
 
 def load_vumichien():
     model_id  = "vumichien/wav2vec2-large-xlsr-japanese-hiragana"
-    processor = Wav2Vec2Processor.from_pretrained(model_id)
-    model     = Wav2Vec2ForCTC.from_pretrained(model_id)
+    processor = _from_pretrained_cache_first(Wav2Vec2Processor, model_id)
+    model     = _from_pretrained_cache_first(Wav2Vec2ForCTC, model_id)
     device = (torch.device("mps") if torch.backends.mps.is_available()
               else torch.device("cuda") if torch.cuda.is_available()
               else torch.device("cpu"))
     model.to(device).eval()
     return model, processor, device
+
+
+def _from_pretrained_cache_first(loader, model_id):
+    try:
+        return loader.from_pretrained(model_id, local_files_only=True)
+    except Exception:
+        return loader.from_pretrained(model_id)
 
 
 def _infer(model, processor, device, audio):
