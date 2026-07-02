@@ -12,6 +12,7 @@ from .audio_pipeline import (
 )
 from .consensus import ConsensusGate
 from .interactive import run_interactive
+from .judge_config import DEFAULT_JUDGE_CONFIG_PATH, load_judge_console_config
 from .jfs_samples import (
     DEFAULT_CATALOG_PATH,
     DEFAULT_DOWNLOAD_DIR,
@@ -102,12 +103,18 @@ def main() -> None:
         "interactive",
         help="Choose one audio file, show objective data, Judge results, and consensus",
     )
-    interactive_parser.add_argument("--audio-dir", type=Path, default=Path("audio"))
+    interactive_parser.add_argument(
+        "--judge-config",
+        type=Path,
+        default=DEFAULT_JUDGE_CONFIG_PATH,
+        help="JSON config for collaborator console testing",
+    )
+    interactive_parser.add_argument("--audio-dir", type=Path)
     interactive_parser.add_argument(
         "--judge-mode",
-        default="mock",
+        default=None,
         choices=["mock", "live"],
-        help="mock is local only; live calls the selected LLM providers",
+        help="override judge_mode from the config; mock is local only; live calls LLM providers",
     )
     interactive_parser.add_argument(
         "--judge-providers",
@@ -125,8 +132,7 @@ def main() -> None:
     interactive_parser.add_argument(
         "--profile",
         type=Path,
-        default=Path("tuning_profiles/base.json"),
-        help="profile used for prompt tuning and exact CEFR overrides",
+        help="override profile from the config; used for prompt tuning and exact CEFR overrides",
     )
     interactive_parser.add_argument(
         "--review-store",
@@ -217,16 +223,21 @@ def main() -> None:
             parser.exit(2, f"[エラー] 客観データ抽出に失敗しました。\n{exc}\n")
     elif args.command == "interactive":
         load_env_file(args.env_file)
-        run_interactive(
-            audio_dir=args.audio_dir,
-            judge_mode=args.judge_mode,
-            provider_specs=(
+        judge_config = load_judge_console_config(args.judge_config)
+        judge_mode = args.judge_mode or judge_config.judge_mode
+        provider_specs = None
+        if judge_mode == "live":
+            provider_specs = (
                 parse_provider_specs(args.judge_providers)
-                if args.judge_mode == "live" and args.judge_providers
-                else None
-            ),
+                if args.judge_providers
+                else list(judge_config.judge_providers)
+            )
+        run_interactive(
+            audio_dir=args.audio_dir or judge_config.audio_dir,
+            judge_mode=judge_mode,
+            provider_specs=provider_specs,
             timeout_sec=args.timeout_sec,
-            profile_path=args.profile,
+            profile_path=args.profile or judge_config.profile_path,
             review_store_path=args.review_store,
         )
         return

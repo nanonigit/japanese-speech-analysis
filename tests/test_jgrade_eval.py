@@ -1,5 +1,7 @@
+import json
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from jgrade_eval.consensus import AutoCefrConsensus, ConsensusGate
 from jgrade_eval.jfs_samples import (
@@ -22,6 +24,7 @@ from jgrade_eval.live_judges import (
     parse_provider_specs,
     provider_key_status,
 )
+from jgrade_eval.judge_config import load_judge_console_config
 from jgrade_eval.metrics import evaluate_against_humans
 from jgrade_eval.mock_judges import judge_auto_cefr_with_mock_panel, judge_with_mock_panel
 from jgrade_eval.models import AutoLevelJudgeResult, BenchmarkItem, JudgeResult, Rating
@@ -329,6 +332,86 @@ class LiveJudgeConfigTests(unittest.TestCase):
     def test_parse_provider_specs_rejects_duplicate_providers(self) -> None:
         with self.assertRaises(ValueError):
             parse_provider_specs("openai:gpt-5.4-mini,openai:gpt-5.4")
+
+    def test_load_judge_console_config_reads_three_enabled_judges(self) -> None:
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "judge_llms.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "judge_mode": "live",
+                        "audio_dir": "audio",
+                        "profile": "tuning_profiles/base.json",
+                        "live_judges": [
+                            {
+                                "judge_id": "A",
+                                "enabled": True,
+                                "provider": "anthropic",
+                                "model": "claude-sonnet-4-6",
+                            },
+                            {
+                                "judge_id": "B",
+                                "enabled": True,
+                                "provider": "openai",
+                                "model": "gpt-5.4-mini",
+                            },
+                            {
+                                "judge_id": "C",
+                                "enabled": True,
+                                "provider": "gemini",
+                                "model": "gemini-3.1-pro-preview",
+                            },
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            config = load_judge_console_config(path)
+
+        self.assertEqual(config.judge_mode, "live")
+        self.assertEqual(config.audio_dir, Path("audio"))
+        self.assertEqual(
+            list(config.judge_providers),
+            [
+                ProviderSpec("anthropic", "claude-sonnet-4-6"),
+                ProviderSpec("openai", "gpt-5.4-mini"),
+                ProviderSpec("gemini", "gemini-3.1-pro-preview"),
+            ],
+        )
+
+    def test_load_judge_console_config_skips_disabled_judges(self) -> None:
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "judge_llms.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "judge_mode": "live",
+                        "live_judges": [
+                            {
+                                "judge_id": "A",
+                                "enabled": True,
+                                "provider": "anthropic",
+                                "model": "claude-sonnet-4-6",
+                            },
+                            {
+                                "judge_id": "B",
+                                "enabled": False,
+                                "provider": "openai",
+                                "model": "gpt-5.4-mini",
+                            },
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            config = load_judge_console_config(path)
+
+        self.assertEqual(
+            list(config.judge_providers),
+            [ProviderSpec("anthropic", "claude-sonnet-4-6")],
+        )
 
     def test_extract_json_object_accepts_fenced_response(self) -> None:
         self.assertEqual(
