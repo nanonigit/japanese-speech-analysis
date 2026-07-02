@@ -16,6 +16,7 @@ dependencies = [
     "torch>=2.6.0",
     "torchaudio>=2.6.0",
     "transformers>=4.47.0",
+    "openai>=1.0.0",
 ]
 
 [tool.uv]
