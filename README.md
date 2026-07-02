@@ -125,6 +125,25 @@ uv run python phase3_batch.py
 STT/流暢さ分析の後段として、Raw Transcriptと流暢さ指標を受け取り、3つのLLM Judgeの評価結果を多数決で集約する評価エンジンを追加しています。
 実LLM APIキーがなくても、fixture JSONでプロンプト生成・多数決・CEFR合否判定・人間教師ラベルとのズレ測定を検証できます。
 
+#### テスト用コンソール入口
+
+GitHubから試す人は、環境構築後に `run_jgrade_console.command` を起動してください。macOSではFinderでダブルクリックするとTerminalが開き、音声ファイル選択から結果表示まで同じコンソール画面で進みます。
+
+```bash
+# Terminalから起動する場合
+./run_jgrade_console.command
+
+# 実LLM Judgeで試す場合（.env または環境変数にAPIキーが必要）
+JGRADE_JUDGE_MODE=live ./run_jgrade_console.command
+
+# 実LLM Judgeのモデルを固定する場合
+JGRADE_JUDGE_MODE=live \
+JGRADE_JUDGE_PROVIDERS=anthropic:claude-sonnet-4-6,openai:gpt-5.4-mini,gemini:gemini-3.1-pro-preview \
+./run_jgrade_console.command
+```
+
+入口では、ファイル選択ダイアログ、パス入力、または `audio/` 内のサンプル音声から選べます。出口はコンソール末尾の `=== 最終結果 ===` です。ここに `CEFRレベル`、`タスク達成度`、`信頼度`、`人間確認`、判定理由、ひらがなTranscript量、流暢性指標、Judgeごとの推定レベルが表示されます。
+
 ```bash
 # Judge A（Claude想定）に渡すプロンプトを生成
 uv run python -m jgrade_eval prompt \

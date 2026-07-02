@@ -116,6 +116,12 @@ def run_interactive(
     if override_level:
         print(f"プロファイル補正: raw={raw_decision.final_cefr_level} -> tuned={override_level}")
 
+    print_console_final_result(
+        objective_data=objective_data,
+        decision=decision,
+        judge_results=auto_results,
+    )
+
     if review_store_path:
         record = _build_review_record(
             audio_path=audio_path,
@@ -433,6 +439,60 @@ def print_auto_cefr_consensus(decision: AutoLevelDecision) -> None:
     print(f"最終CEFR推定: {decision.final_cefr_level}")
     print(f"厳密な多数決: {'yes' if decision.has_strict_majority else 'no'}")
     print(f"人間確認フラグ: {'yes' if decision.needs_human_review else 'no'}")
+
+
+def print_console_final_result(
+    *,
+    objective_data: dict,
+    decision: AutoLevelDecision,
+    judge_results: list[AutoLevelJudgeResult],
+) -> None:
+    metrics = objective_data["fluency_metrics"]
+    transcript = objective_data["raw_transcript_hiragana"]
+    task_rating = _aggregate_auto_task_rating(judge_results)
+    confidence = _aggregate_auto_confidence(judge_results, decision.final_cefr_level)
+    matching_results = [
+        result
+        for result in judge_results
+        if result.predicted_cefr_level == decision.final_cefr_level
+    ]
+    rationale = (matching_results or judge_results)[0].rationale if judge_results else ""
+
+    print("\n=== 最終結果 ===")
+    print(f"CEFRレベル: {decision.final_cefr_level}")
+    print(f"タスク達成度: {task_rating or 'n/a'}")
+    print(f"信頼度: {confidence:.2f}")
+    print(f"人間確認: {'必要' if decision.needs_human_review else '不要'}")
+    if rationale:
+        print(f"理由: {rationale}")
+    print("根拠:")
+    print(f"  - ひらがなTranscript: {len(transcript)}文字")
+    print(
+        "  - 流暢性: "
+        f"発話率 {metrics['speech_ratio_pct']}%, "
+        f"{metrics['mora_per_sec']} モーラ/秒, "
+        f"最長ポーズ {metrics['max_pause_sec']}秒"
+    )
+    print(
+        "  - Judge: "
+        + ", ".join(
+            f"{result.judge_id}={result.predicted_cefr_level}"
+            for result in judge_results
+        )
+    )
+
+
+def _aggregate_auto_confidence(
+    results: list[AutoLevelJudgeResult],
+    final_level: str,
+) -> float:
+    matching = [
+        result.confidence
+        for result in results
+        if result.predicted_cefr_level == final_level
+    ]
+    values = matching or [result.confidence for result in results]
+    return round(sum(values) / len(values), 2) if values else 0.0
 
 
 def _prompt_text(label: str, *, default: str) -> str:
