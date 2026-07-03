@@ -148,6 +148,8 @@ JGRADE_JUDGE_PROVIDERS=anthropic:claude-sonnet-4-6,openai:gpt-5.4-mini,gemini:ge
 
 Judge設定の後に、ファイル選択ダイアログ、パス入力、または `audio/` 内のサンプル音声から音声を選べます。出口はコンソール末尾の `=== 最終結果 ===` です。ここに `CEFRレベル`、`タスク達成度`、`信頼度`、`人間確認`、判定理由、ひらがなTranscript量、流暢性指標、Judgeごとの推定レベルが表示されます。
 
+最終結果の後に `=== ユーザーレベル確認 ===` が表示されます。協力者はこのファイルの正しいCEFRレベルを選ぶか、`スキップ` できます。ユーザー選択レベルがSystemJudgeの判定と異なる場合は、`tuning_profiles/base.json` などのチューニングプロファイルに `level_overrides` と `tuning_examples` を自動保存し、修正内容をコンソールに表示します。同じ音声は次回以降、保存された補正を判定過程で使います。
+
 協力者に送る詳しい手順と報告テンプレートは `docs/collaborator_testing.md` にあります。
 
 ```bash

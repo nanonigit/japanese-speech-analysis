@@ -19,8 +19,20 @@ from .live_judges import (
     provider_key_status,
 )
 from .mock_judges import judge_auto_cefr_with_mock_panel
-from .models import AutoLevelDecision, AutoLevelJudgeResult, JudgeResult, RoleplayDecision
-from .tuning_profile import compose_auto_cefr_system_prompt, load_profile
+from .models import (
+    CEFR_LEVELS,
+    AutoLevelDecision,
+    AutoLevelJudgeResult,
+    JudgeResult,
+    RoleplayDecision,
+)
+from .tuning_profile import (
+    TuningProfile,
+    apply_level_correction,
+    compose_auto_cefr_system_prompt,
+    load_profile,
+    save_profile,
+)
 from .tuning_samples import (
     DEFAULT_REVIEW_DATASET_PATH,
     append_judged_sample,
@@ -123,17 +135,68 @@ def run_interactive(
         judge_results=auto_results,
     )
 
+    record = _build_review_record(
+        audio_path=audio_path,
+        review_sample_id=review_sample_id,
+        objective_data=objective_data,
+        decision=decision,
+        raw_decision=raw_decision,
+        auto_results=auto_results,
+        judge_failures=judge_failures,
+        override_applied=bool(override_level),
+    )
+    user_level = prompt_user_cefr_level(decision.final_cefr_level)
+    if user_level:
+        record["human_cefr"] = user_level
+        record["human_feedback_source"] = "console_final_prompt"
+        if user_level == decision.final_cefr_level:
+            print("\n=== ユーザー補正 ===")
+            print(f"ユーザー選択: {user_level}")
+            print("SystemJudgeの判定と一致したため、判定過程の修正は行いません。")
+        else:
+            previous_level = decision.final_cefr_level
+            correction_record = {
+                **record,
+                "predicted_cefr": previous_level,
+                "raw_predicted_cefr": previous_level,
+            }
+            profile = apply_and_save_user_level_correction(
+                profile=profile or TuningProfile.default(),
+                profile_path=profile_path,
+                record=correction_record,
+                corrected_level=user_level,
+            )
+            decision = replace(
+                decision,
+                final_cefr_level=user_level,
+                needs_human_review=True,
+            )
+            record = {
+                **record,
+                "predicted_cefr": user_level,
+                "user_corrected_cefr": user_level,
+                "system_predicted_cefr_before_feedback": previous_level,
+                "profile_override_applied": True,
+                "human_feedback_applied": True,
+                "needs_human_review": True,
+            }
+            print_user_level_correction_summary(
+                sample_id=review_sample_id,
+                previous_level=previous_level,
+                corrected_level=user_level,
+                profile_path=profile_path,
+                profile=profile,
+            )
+            print_console_final_result(
+                objective_data=objective_data,
+                decision=decision,
+                judge_results=auto_results,
+                title="修正後の最終結果",
+            )
+    else:
+        print("\nユーザーレベル選択はスキップされました。")
+
     if review_store_path:
-        record = _build_review_record(
-            audio_path=audio_path,
-            review_sample_id=review_sample_id,
-            objective_data=objective_data,
-            decision=decision,
-            raw_decision=raw_decision,
-            auto_results=auto_results,
-            judge_failures=judge_failures,
-            override_applied=bool(override_level),
-        )
         append_judged_sample(review_store_path, record=record, source="interactive")
         print(f"判定履歴を保存しました: {review_store_path}")
 
@@ -211,6 +274,75 @@ def confirm_configured_provider_specs(provider_specs: list[ProviderSpec]) -> lis
         if _confirm_or_fix_provider_key(str(judge_number), spec):
             confirmed_specs.append(spec)
     return confirmed_specs
+
+
+def prompt_user_cefr_level(system_level: str) -> str | None:
+    print("\n=== ユーザーレベル確認 ===")
+    print(f"SystemJudgeの判定: {system_level}")
+    print("このファイルの正しいCEFRレベルを選んでください。")
+    for index, level in enumerate(CEFR_LEVELS, 1):
+        print(f"  {index}. {level}")
+    skip_index = len(CEFR_LEVELS) + 1
+    print(f"  {skip_index}. スキップ")
+
+    while True:
+        try:
+            raw = input("番号: ").strip()
+        except EOFError:
+            return None
+        try:
+            selected = int(raw)
+        except ValueError:
+            print("数字で入力してください。")
+            continue
+        if 1 <= selected <= len(CEFR_LEVELS):
+            return CEFR_LEVELS[selected - 1]
+        if selected == skip_index:
+            return None
+        print(f"1〜{skip_index} の番号を入力してください。")
+
+
+def apply_and_save_user_level_correction(
+    *,
+    profile: TuningProfile,
+    profile_path: Path | None,
+    record: dict,
+    corrected_level: str,
+) -> TuningProfile:
+    updated_profile = apply_level_correction(
+        profile,
+        record=record,
+        corrected_cefr=corrected_level,
+        note="console final level feedback",
+    )
+    if profile_path:
+        save_profile(updated_profile, profile_path)
+    return updated_profile
+
+
+def print_user_level_correction_summary(
+    *,
+    sample_id: str,
+    previous_level: str,
+    corrected_level: str,
+    profile_path: Path | None,
+    profile: TuningProfile,
+) -> None:
+    print("\n=== ユーザー補正 ===")
+    print(f"ユーザー選択: {corrected_level}")
+    print(f"SystemJudge: {previous_level}")
+    print("判定過程を自動修正しました。")
+    if profile_path:
+        print(f"  - 保存先プロファイル: {profile_path}")
+    else:
+        print("  - 保存先プロファイル: 未指定のため、この実行内だけに反映")
+    print(f"  - level_overrides[{sample_id}] = {corrected_level}")
+    print(f"  - tuning_examples: {len(profile.tuning_examples)}件")
+    transition = f"{previous_level}->{corrected_level}"
+    correction_stats = profile.metadata.get("level_correction_stats", {})
+    if isinstance(correction_stats, dict) and transition in correction_stats:
+        print(f"  - level_correction_stats[{transition}] = {correction_stats[transition]}")
+    print("  - 修正後の最終CEFRをユーザー選択レベルに更新")
 
 
 def _build_review_record(
@@ -518,6 +650,7 @@ def print_console_final_result(
     objective_data: dict,
     decision: AutoLevelDecision,
     judge_results: list[AutoLevelJudgeResult],
+    title: str = "最終結果",
 ) -> None:
     metrics = objective_data["fluency_metrics"]
     transcript = objective_data["raw_transcript_hiragana"]
@@ -530,7 +663,7 @@ def print_console_final_result(
     ]
     rationale = (matching_results or judge_results)[0].rationale if judge_results else ""
 
-    print("\n=== 最終結果 ===")
+    print(f"\n=== {title} ===")
     print(f"CEFRレベル: {decision.final_cefr_level}")
     print(f"タスク達成度: {task_rating or 'n/a'}")
     print(f"信頼度: {confidence:.2f}")

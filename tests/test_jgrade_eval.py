@@ -14,7 +14,9 @@ from jgrade_eval.interactive import (
     _format_provider_key_state,
     _normalize_audio_path_input,
     _upsert_env_value,
+    apply_and_save_user_level_correction,
     list_audio_files,
+    prompt_user_cefr_level,
     prompt_provider_specs,
 )
 from jgrade_eval.live_judges import (
@@ -678,6 +680,48 @@ class TuningTests(unittest.TestCase):
         self.assertEqual(second["metrics"]["accuracy"], 1.0)
         self.assertIn("teacher correction", compose_auto_cefr_system_prompt(tuned))
         self.assertIn("B1->B2", compose_auto_cefr_system_prompt(tuned))
+
+    def test_prompt_user_cefr_level_can_select_or_skip(self) -> None:
+        import io
+        from contextlib import redirect_stdout
+        from unittest.mock import patch
+
+        with patch("builtins.input", return_value="4"):
+            with redirect_stdout(io.StringIO()):
+                selected = prompt_user_cefr_level("B1")
+        with patch("builtins.input", return_value="7"):
+            with redirect_stdout(io.StringIO()):
+                skipped = prompt_user_cefr_level("B1")
+
+        self.assertEqual(selected, "B2")
+        self.assertIsNone(skipped)
+
+    def test_console_level_feedback_saves_profile_override(self) -> None:
+        from tempfile import TemporaryDirectory
+
+        record = {
+            "sample_id": "sample-1",
+            "predicted_cefr": "B1",
+            "raw_predicted_cefr": "B1",
+            "objective_data": {
+                "raw_transcript_hiragana": "こんにちは",
+                "fluency_metrics": {"mora_per_sec": 4.0},
+            },
+        }
+        with TemporaryDirectory() as tmp:
+            profile_path = Path(tmp) / "profile.json"
+            updated = apply_and_save_user_level_correction(
+                profile=TuningProfile.default(),
+                profile_path=profile_path,
+                record=record,
+                corrected_level="B2",
+            )
+            loaded = load_profile(profile_path)
+
+        self.assertEqual(updated.level_overrides["sample-1"], "B2")
+        self.assertEqual(loaded.level_overrides["sample-1"], "B2")
+        self.assertEqual(loaded.metadata["level_correction_stats"]["B1->B2"], 1)
+        self.assertEqual(loaded.tuning_examples[-1]["note"], "console final level feedback")
 
     def test_profile_history_keeps_last_ten_and_can_restore(self) -> None:
         profile = TuningProfile.default()
