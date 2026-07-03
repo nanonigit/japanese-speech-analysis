@@ -144,7 +144,9 @@ JGRADE_JUDGE_PROVIDERS=anthropic:claude-sonnet-4-6,openai:gpt-5.4-mini,gemini:ge
 ./run_jgrade_console.command
 ```
 
-入口では、ファイル選択ダイアログ、パス入力、または `audio/` 内のサンプル音声から選べます。出口はコンソール末尾の `=== 最終結果 ===` です。ここに `CEFRレベル`、`タスク達成度`、`信頼度`、`人間確認`、判定理由、ひらがなTranscript量、流暢性指標、Judgeごとの推定レベルが表示されます。
+起動直後に `=== Judge設定 ===` が表示されます。ここで `mock Judgeで試す`、`設定ファイルのJudge 1〜3を使う`、`Judge 1〜3をこの画面で選ぶ` から選択できます。実LLM Judge候補には `key=set`、`key=missing`、`key=invalid` のようにAPIキー状態が表示されます。APIキーの値そのものは表示しません。
+
+Judge設定の後に、ファイル選択ダイアログ、パス入力、または `audio/` 内のサンプル音声から音声を選べます。出口はコンソール末尾の `=== 最終結果 ===` です。ここに `CEFRレベル`、`タスク達成度`、`信頼度`、`人間確認`、判定理由、ひらがなTranscript量、流暢性指標、Judgeごとの推定レベルが表示されます。
 
 協力者に送る詳しい手順と報告テンプレートは `docs/collaborator_testing.md` にあります。
 
@@ -193,7 +195,7 @@ uv run python -m jgrade_eval interactive --judge-mode mock
 # 対話式で実LLMを使う前に、ローカル.envへキーを設定
 uv run python -m jgrade_eval configure-keys
 
-# 対話式: 音声を選ぶ -> Judge A/B/CのLLMを番号で選ぶ -> CEFR自動推定
+# 対話式: Judge 1/2/3のLLMを番号で選ぶ -> 音声を選ぶ -> CEFR自動推定
 uv run python -m jgrade_eval interactive --judge-mode live
 
 # 実LLMをCLI引数で固定して評価
@@ -233,7 +235,7 @@ curl -s -X POST http://127.0.0.1:8000/api/v1/speech-level-evaluations \
 uv run python -m unittest discover -s tests
 ```
 
-対話式CLIではCEFRレベルやロールプレイ課題を人間が入力せず、客観データをもとに1〜3つのLLM Judgeが `A1`〜`C2` を推定し、多数決で最終CEFR推定を表示します。標準構成は3 Judgeですが、ローカル検証ではJudge B/Cをスキップできます。プロバイダは重複できません。
+対話式CLIではCEFRレベルやロールプレイ課題を人間が入力せず、客観データをもとに1〜3つのLLM Judgeが `A1`〜`C2` を推定し、多数決で最終CEFR推定を表示します。標準構成は3 Judgeですが、ローカル検証ではJudge 2/3をスキップできます。プロバイダは重複できません。
 対話式CLIでは一部のJudge APIが失敗しても、少なくとも1つのJudgeが成功していれば、その成功分だけでCEFR集約を続行し、失敗したJudgeは警告として表示します。
 
 HTTP APIは `POST /api/v1/speech-level-evaluations` で音声ファイルまたは `audio_url` を受け取り、`final_cefr_level`、`summary`、`reasons`、`objective_data`、`judge_results`、`needs_human_review` を返します。現在のローカルAPIは1リクエスト内で処理を完了して返すMVPです。将来の外部System統合では、同じレスポンス形を保ったまま非同期ジョブ化する想定です。
@@ -242,7 +244,7 @@ HTTP APIは `POST /api/v1/speech-level-evaluations` で音声ファイルまた�
 
 テスト用音声は `audio/` に集約して管理します。公式JFスタンダードのロールプレイ音声は、`examples/jfs_roleplay_catalog.json` に出典URL・レベル・達成度・評価PDFをまとめています。対象はA2/B1/B2/C1の13サンプルです。JFロールプレイテストにはC2ロールプレイがないため、C2判定はこの公式音声だけでは検証できません。サイトポリシー上、公式音声/PDF本体はローカル利用にとどめ、公式音声は `.gitignore` で追跡しないでください。
 
-実LLMで評価する場合は `configure-keys` を使うか、`.env.example` を `.env` にコピーして、使うプロバイダのキーだけを入れてください。`configure-keys` は各入力後と最後に `set/missing` だけを表示し、キー値は表示しません。対応するテキストJudgeプロバイダは `anthropic`, `openai`, `gemini`, `xai`, `groq` です。`interactive --judge-mode live` で `--judge-providers` を省略すると、Judge A/B/CのLLMを番号で選べます。Judge Aで選んだプロバイダはB/C候補から消え、B/Cではスキップできます。`elevenlabs` はキーの保存状態だけ表示しますが、現時点ではテキストJudgeとしては使わず、将来の音声機能用に予約しています。
+実LLMで評価する場合は `configure-keys` を使うか、`.env.example` を `.env` にコピーして、使うプロバイダのキーだけを入れてください。`configure-keys` は各入力後と最後に `set/missing` だけを表示し、キー値は表示しません。対応するテキストJudgeプロバイダは `anthropic`, `openai`, `gemini`, `xai`, `groq` です。`interactive --judge-mode live` で `--judge-providers` を省略すると、Judge 1/2/3のLLMを番号で選べます。Judge 1で選んだプロバイダは2/3候補から消え、Judge 2/3ではスキップできます。`elevenlabs` はキーの保存状態だけ表示しますが、現時点ではテキストJudgeとしては使わず、将来の音声機能用に予約しています。
 
 `uv` がPATHにないローカル環境では、既存の仮想環境があれば `.venv/bin/python -m jgrade_eval ...` または `.venv/bin/python -m unittest discover -s tests` で同じ検証を実行できます。
 

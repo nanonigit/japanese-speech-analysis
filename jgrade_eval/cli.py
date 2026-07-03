@@ -225,13 +225,11 @@ def main() -> None:
         load_env_file(args.env_file)
         judge_config = load_judge_console_config(args.judge_config)
         judge_mode = args.judge_mode or judge_config.judge_mode
-        provider_specs = None
-        if judge_mode == "live":
-            provider_specs = (
-                parse_provider_specs(args.judge_providers)
-                if args.judge_providers
-                else list(judge_config.judge_providers)
-            )
+        provider_specs = (
+            parse_provider_specs(args.judge_providers)
+            if args.judge_providers
+            else list(judge_config.judge_providers)
+        )
         run_interactive(
             audio_dir=args.audio_dir or judge_config.audio_dir,
             judge_mode=judge_mode,

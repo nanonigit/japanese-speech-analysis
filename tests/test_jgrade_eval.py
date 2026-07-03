@@ -11,6 +11,7 @@ from jgrade_eval.jfs_samples import (
     validate_jfs_catalog,
 )
 from jgrade_eval.interactive import (
+    _format_provider_key_state,
     _normalize_audio_path_input,
     _upsert_env_value,
     list_audio_files,
@@ -447,6 +448,19 @@ class LiveJudgeConfigTests(unittest.TestCase):
         self.assertFalse(status.ok)
         self.assertEqual(status.state, "invalid")
         self.assertIn("Google AI Studio", status.message)
+
+    def test_provider_key_state_display_shows_set_missing_and_invalid(self) -> None:
+        import os
+        from unittest.mock import patch
+
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "ok"}, clear=True):
+            self.assertEqual(_format_provider_key_state("openai"), "key=set (OPENAI_API_KEY)")
+            self.assertEqual(
+                _format_provider_key_state("anthropic"),
+                "key=missing (ANTHROPIC_API_KEY)",
+            )
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "not-google-ai-studio-key"}, clear=True):
+            self.assertEqual(_format_provider_key_state("gemini"), "key=invalid (GEMINI_API_KEY)")
 
     def test_partial_live_panel_keeps_successful_judges(self) -> None:
         from unittest.mock import patch

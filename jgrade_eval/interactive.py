@@ -40,6 +40,7 @@ def run_interactive(
     profile_path: Path | None = None,
     review_store_path: Path | None = DEFAULT_REVIEW_DATASET_PATH,
 ) -> None:
+    judge_mode, provider_specs = prompt_judge_setup(judge_mode, provider_specs or [])
     audio_path = prompt_audio_choice(list_audio_files(audio_dir))
 
     print("\n[1/4] 客観データを抽出中...")
@@ -139,6 +140,77 @@ def run_interactive(
     print("\n[4/4] 完了")
     print("注: これは選択した1音声に対するCEFR推定です。")
     print("公開・本番利用前には、人間教師ラベルとのベンチマークで精度検証してください。")
+
+
+def prompt_judge_setup(
+    judge_mode: str,
+    provider_specs: list[ProviderSpec],
+) -> tuple[str, list[ProviderSpec] | None]:
+    configured_specs = list(provider_specs)
+    while True:
+        print("\n=== Judge設定 ===")
+        print("最初に評価に使うJudgeを選んでください。")
+        print("APIキーの値は表示しません。設定済みかどうかだけ表示します。")
+        if configured_specs:
+            print_provider_key_summary(configured_specs)
+        else:
+            print("設定済みの実LLM Judge候補: なし")
+
+        options: list[tuple[str, str]] = []
+        if judge_mode == "live" and configured_specs:
+            options.append(("configured", "設定ファイルのJudge 1〜3を使う"))
+            options.append(("manual", "Judge 1〜3をこの画面で選び直す"))
+            options.append(("mock", "mock Judgeで試す（APIキー不要）"))
+        else:
+            options.append(("mock", "mock Judgeで試す（APIキー不要）"))
+            if configured_specs:
+                options.append(("configured", "設定ファイルのJudge 1〜3を使う"))
+            options.append(("manual", "Judge 1〜3をこの画面で選ぶ"))
+
+        print("\n選択:")
+        for index, (_, label) in enumerate(options, 1):
+            print(f"  {index}. {label}")
+
+        action = options[_prompt_index("番号", len(options)) - 1][0]
+        if action == "mock":
+            print("\n選択: mock Judge（APIキー不要）")
+            return "mock", None
+        if action == "manual":
+            return "live", prompt_provider_specs()
+
+        confirmed_specs = confirm_configured_provider_specs(configured_specs)
+        if confirmed_specs:
+            print("\n選択したJudge:")
+            for judge_number, spec in enumerate(confirmed_specs, 1):
+                print(f"  Judge {judge_number}: {format_provider_spec(spec)}")
+            return "live", confirmed_specs
+        print("\n少なくとも1つのJudgeが必要です。もう一度選んでください。")
+
+
+def print_provider_key_summary(provider_specs: list[ProviderSpec]) -> None:
+    print("\n設定済みの実LLM Judge候補:")
+    for judge_number, spec in enumerate(provider_specs, 1):
+        print(
+            f"  Judge {judge_number}: {format_provider_spec(spec)} "
+            f"[{_format_provider_key_state(spec.provider)}]"
+        )
+
+
+def _format_provider_key_state(provider: str) -> str:
+    status = provider_key_status(provider)
+    if status.ok:
+        return f"key=set ({status.env_name})" if status.env_name else "key=not-required"
+    env_name = status.env_name or "/".join(PROVIDER_KEY_ENVS.get(provider, ()))
+    label = "key=missing" if status.state == "missing" else f"key={status.state}"
+    return f"{label} ({env_name})" if env_name else label
+
+
+def confirm_configured_provider_specs(provider_specs: list[ProviderSpec]) -> list[ProviderSpec]:
+    confirmed_specs: list[ProviderSpec] = []
+    for judge_number, spec in enumerate(provider_specs, 1):
+        if _confirm_or_fix_provider_key(str(judge_number), spec):
+            confirmed_specs.append(spec)
+    return confirmed_specs
 
 
 def _build_review_record(
@@ -269,27 +341,27 @@ def _validate_audio_path(path: Path) -> Path | None:
 
 def prompt_provider_specs() -> list[ProviderSpec]:
     print("\nLLM Judgeを1〜3つ選択してください。")
-    print("プロバイダは重複できません。Judge B/Cではスキップできます。")
+    print("プロバイダは重複できません。Judge 2/3ではスキップできます。")
     print("キーは .env または環境変数から読みます。ここではキーを入力しません。")
     specs: list[ProviderSpec] = []
     used_providers: set[str] = set()
-    for judge_id in ("A", "B", "C"):
+    for judge_number in ("1", "2", "3"):
         while True:
             spec = _prompt_provider_for_judge(
-                judge_id,
+                judge_number,
                 used_providers=used_providers,
                 allow_skip=bool(specs),
             )
             if spec is not None or specs:
                 break
-            print("Judge Aは最低1つ必要です。別のプロバイダを選んでください。")
+            print("Judge 1は最低1つ必要です。別のプロバイダを選んでください。")
         if spec is None:
             break
         specs.append(spec)
         used_providers.add(spec.provider)
     print("\n選択したJudge:")
-    for judge_id, spec in zip(("A", "B", "C"), specs):
-        print(f"  Judge {judge_id}: {format_provider_spec(spec)}")
+    for judge_number, spec in enumerate(specs, 1):
+        print(f"  Judge {judge_number}: {format_provider_spec(spec)}")
     return specs
 
 

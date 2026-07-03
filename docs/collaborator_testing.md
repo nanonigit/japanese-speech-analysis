@@ -52,6 +52,14 @@ Judge設定は `config/judge_llms.json` にあります。コードは編集し�
 
 ## 3. 音声の選び方
 
+起動直後に `=== Judge設定 ===` が表示されます。ここで、以下から選びます。
+
+- `mock Judgeで試す`: APIキーなしで疎通確認する
+- `設定ファイルのJudge 1〜3を使う`: `config/judge_llms.json` の設定で実LLM評価する
+- `Judge 1〜3をこの画面で選ぶ`: 起動時にprovider/modelを選び直す
+
+実LLM Judge候補には `key=set`、`key=missing`、`key=invalid` のようにAPIキー状態が表示されます。APIキーの値そのものは表示されません。
+
 起動後、以下から選べます。
 
 - ファイル選択ダイアログ
