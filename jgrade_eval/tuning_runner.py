@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .audio_pipeline import FluencyExtractor
-from .consensus import AutoCefrConsensus
+from .deliberation import deliberate_auto_cefr
 from .live_judges import (
     JudgeFailure,
     ProviderSpec,
@@ -66,9 +66,13 @@ def run_tuning_dataset(
                 )
                 continue
 
-            decision = AutoCefrConsensus().decide(judge_results)
-            override_level = profile.level_overrides.get(sample_id)
-            predicted_cefr = override_level or decision.final_cefr_level
+            deliberation = deliberate_auto_cefr(
+                judge_results,
+                objective_data=objective_data,
+                profile=profile,
+            )
+            decision = deliberation.final_decision
+            predicted_cefr = decision.final_cefr_level
             task_rating = aggregate_task_rating(judge_results)
             records.append(
                 {
@@ -77,7 +81,7 @@ def run_tuning_dataset(
                     "audio_path": str(item.get("audio_path", "")),
                     "human_cefr": _optional_level(item.get("human_cefr")),
                     "human_rating": _optional_rating_value(item.get("human_rating")),
-                    "raw_predicted_cefr": decision.final_cefr_level,
+                    "raw_predicted_cefr": deliberation.raw_decision.final_cefr_level,
                     "predicted_cefr": predicted_cefr,
                     "predicted_task_rating": task_rating.value,
                     "cefr_correct": (
@@ -93,7 +97,8 @@ def run_tuning_dataset(
                         if item.get("human_cefr")
                         else None
                     ),
-                    "profile_override_applied": bool(override_level),
+                    "calibration_applied": deliberation.applied_calibration,
+                    "deliberation_conclusion": deliberation.conclusion,
                     "needs_human_review": decision.needs_human_review
                     or bool(judge_failures),
                     "judge_results": [result.to_dict() for result in judge_results],

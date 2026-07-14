@@ -7,7 +7,7 @@ from typing import Any
 from uuid import uuid4
 
 from .audio_pipeline import FluencyExtractor
-from .consensus import AutoCefrConsensus
+from .deliberation import deliberate_auto_cefr
 from .live_judges import (
     JudgeFailure,
     ProviderSpec,
@@ -80,7 +80,12 @@ def evaluate_speech_level(
         if not judge_results:
             raise RuntimeError("all LLM Judges failed.")
 
-    decision = AutoCefrConsensus().decide(judge_results)
+    deliberation = deliberate_auto_cefr(
+        judge_results,
+        objective_data=objective_data,
+        profile=profile,
+    )
+    decision = deliberation.final_decision
     task_rating = _aggregate_task_rating(judge_results)
     confidence = _aggregate_confidence(judge_results, decision.final_cefr_level)
     reasons = _build_reasons(
@@ -103,9 +108,23 @@ def evaluate_speech_level(
         "summary": _build_summary(decision.final_cefr_level, task_rating, judge_results),
         "reasons": reasons,
         "consensus": {
-            "method": "auto_cefr_consensus",
-            "has_strict_majority": decision.has_strict_majority,
+            "method": "auto_cefr_deliberation",
+            "raw_cefr_level": deliberation.raw_decision.final_cefr_level,
+            "has_strict_majority": deliberation.raw_decision.has_strict_majority,
             "judge_count": len(judge_results),
+            "applied_calibration": deliberation.applied_calibration,
+            "judge_summaries": list(deliberation.judge_summaries),
+            "calibration_matches": [
+                {
+                    "sample_id": match.sample_id,
+                    "previous_level": match.previous_level,
+                    "corrected_level": match.corrected_level,
+                    "score": match.score,
+                    "summary": match.summary,
+                }
+                for match in deliberation.calibration_matches
+            ],
+            "conclusion": deliberation.conclusion,
         },
         "judge_results": [result.to_dict() for result in judge_results],
         "judge_failures": [_judge_failure_to_dict(failure) for failure in judge_failures],

@@ -170,7 +170,6 @@ def apply_level_correction(
     }
     updated = replace(
         profile,
-        level_overrides={**profile.level_overrides, sample_id: level},
         tuning_examples=(*profile.tuning_examples, example)[-50:],
         metadata=_updated_metadata(profile, record, level),
     )

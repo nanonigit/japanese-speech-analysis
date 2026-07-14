@@ -16,6 +16,12 @@ macOSでFinderから起動したい場合は、`run_jgrade_console.command` を�
 ./run_jgrade_console.command
 ```
 
+Codexや通常シェルからmacOS Terminalを新しく開いて試す場合は以下です。
+
+```bash
+./open_jgrade_console_terminal.command
+```
+
 ## 2. Judge LLMの選び方
 
 Judge設定は `config/judge_llms.json` にあります。コードは編集しません。
@@ -93,12 +99,12 @@ CEFRレベル: B1
 === ユーザー補正 ===
 ユーザー選択: B2
 SystemJudge: B1
-判定過程を自動修正しました。
+補正材料として保存しました。
   - 保存先プロファイル: tuning_profiles/base.json
-  - level_overrides[sample-id] = B2
+  - 補正例 sample_id=sample-id: B1->B2
   - tuning_examples: 1件
   - level_correction_stats[B1->B2] = 1
-  - 修正後の最終CEFRをユーザー選択レベルに更新
+  - 次回以降は同一IDの強制上書きではなく、協議時の補正材料として使用
 ```
 
 ```text

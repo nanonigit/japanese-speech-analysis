@@ -256,9 +256,16 @@ GET /api/v1/speech-level-evaluations/eval_01J2X3
       }
     },
     "consensus": {
-      "method": "auto_cefr_consensus",
+      "method": "auto_cefr_deliberation",
+      "raw_cefr_level": "B1",
       "has_strict_majority": true,
-      "judge_count": 3
+      "judge_count": 3,
+      "applied_calibration": false,
+      "judge_summaries": [
+        "Judge A [anthropic]: B1, task=○, confidence=0.74; ..."
+      ],
+      "calibration_matches": [],
+      "conclusion": "Judge投票と補正材料から最終CEFRを導出した説明"
     },
     "judge_results": [
       {

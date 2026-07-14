@@ -135,6 +135,9 @@ Judge LLMの選択は `config/judge_llms.json` で管理します。協力者は
 # Terminalから起動する場合
 ./run_jgrade_console.command
 
+# Codexや通常シェルからmacOS Terminalを開いて起動する場合
+./open_jgrade_console_terminal.command
+
 # 実LLM Judgeで試す場合（一時上書き。通常は config/judge_llms.json を編集）
 JGRADE_JUDGE_MODE=live ./run_jgrade_console.command
 
@@ -146,9 +149,9 @@ JGRADE_JUDGE_PROVIDERS=anthropic:claude-sonnet-4-6,openai:gpt-5.4-mini,gemini:ge
 
 起動直後に `=== Judge設定 ===` が表示されます。ここで `mock Judgeで試す`、`設定ファイルのJudge 1〜3を使う`、`Judge 1〜3をこの画面で選ぶ` から選択できます。実LLM Judge候補には `key=valid`、`key=unchecked`、`key=missing`、`key=invalid` のようにAPIキー状態が表示されます。`valid` はプロバイダAPIで認証確認済み、`unchecked` はキーはあるがネットワーク等で確認未完了、`missing` は未設定、`invalid` は形式または認証に失敗した状態です。APIキーの値そのものは表示しません。
 
-Judge設定の後に、ファイル選択ダイアログ、パス入力、または `audio/` 内のサンプル音声から音声を選べます。出口はコンソール末尾の `=== 最終結果 ===` です。ここに `CEFRレベル`、`タスク達成度`、`信頼度`、`人間確認`、判定理由、ひらがなTranscript量、流暢性指標、Judgeごとの推定レベルが表示されます。
+Judge設定の後に、ファイル選択ダイアログ、パス入力、または `audio/` 内のサンプル音声から音声を選べます。出口はコンソール末尾の `=== 最終結果 ===` です。ここに `CEFRレベル`、`タスク達成度`、`信頼度`、`人間確認`、判定理由、協議理由、ひらがなTranscript量、流暢性指標、3 Judge要約、補正材料が表示されます。
 
-最終結果の後に `=== ユーザーレベル確認 ===` が表示されます。協力者はこのファイルの正しいCEFRレベルを選ぶか、`スキップ` できます。ユーザー選択レベルがSystemJudgeの判定と異なる場合は、`tuning_profiles/base.json` などのチューニングプロファイルに `level_overrides` と `tuning_examples` を自動保存し、修正内容をコンソールに表示します。同じ音声は次回以降、保存された補正を判定過程で使います。
+最終結果の後に `=== ユーザーレベル確認 ===` が表示されます。協力者はこのファイルの正しいCEFRレベルを選ぶか、`スキップ` できます。ユーザー選択レベルがSystemJudgeの判定と異なる場合は、`tuning_profiles/base.json` などのチューニングプロファイルに `tuning_examples` と補正統計を自動保存し、修正内容をコンソールに表示します。同じ音声IDを強制上書きするのではなく、次回以降は保存されたTranscript・流暢性指標・補正遷移を協議時の判断材料として使います。
 
 協力者に送る詳しい手順と報告テンプレートは `docs/collaborator_testing.md` にあります。
 
@@ -190,7 +193,7 @@ uv run python -m jgrade_eval evaluate-audio \
   --judge-providers anthropic:claude-sonnet-4-6,openai:gpt-5.4-mini,gemini:gemini-3.1-pro-preview \
   --output outputs/jgrade_live_report.json
 
-# 対話式: 音声を選ぶ -> 客観データ表示 -> 1〜3 Judge CEFR推定 -> CEFR多数決表示
+# 対話式: 音声を選ぶ -> 客観データ表示 -> 1〜3 Judge CEFR推定 -> CEFR協議表示
 # 音声はファイル選択ダイアログ、パス入力、またはサンプル音声から選べます
 uv run python -m jgrade_eval interactive --judge-mode mock
 
@@ -254,7 +257,7 @@ HTTP APIは `POST /api/v1/speech-level-evaluations` で音声ファイルまた�
 
 ### J-GRADEチューニング画面
 
-CLIや一括評価で判定した音声は、レビュー用データセット `data/tuning/review_samples.json` に蓄積できます。教師は画面上でCEFRだけを修正し、その修正から `level_overrides`、補正統計、Few-shot例がプロファイルへ保存されます。
+CLIや一括評価で判定した音声は、レビュー用データセット `data/tuning/review_samples.json` に蓄積できます。教師は画面上でCEFRだけを修正し、その修正から補正統計とFew-shot例がプロファイルへ保存されます。
 
 ```bash
 # 教師ラベルCSVからチューニング用manifestを作成
@@ -282,7 +285,7 @@ CLIや一括評価で判定した音声は、レビュー用データセット `
 
 `tools/tuning_app.py` には `Review Samples`, `CEFR Tuning`, `Metrics`, `Export` の4タブがあります。チューニングとして変更できる入力は `Corrected CEFR` だけです。プロンプト本文や任意メモは画面から直接編集せず、CEFR修正履歴をもとに内部で自動更新します。`Run benchmark` を押すと、レビュー用データセットの客観データと保存中のプロファイル設定でJudge評価を一括実行し、結果を同じレビュー用データセットへ戻します。
 
-`CEFR Tuning` で教師が正しいCEFRへ修正し、`Apply CEFR correction` を押すと、そのサンプルIDに対する `level_overrides`、AI推定から教師修正への `level_correction_stats`、次回以降のLLMプロンプトに入る `tuning_examples` がプロファイルへ保存されます。これにより、同じサンプルは次回から修正CEFRが適用され、類似例はFew-shotと補正傾向としてJudgeに渡されます。
+`CEFR Tuning` で教師が正しいCEFRへ修正し、`Apply CEFR correction` を押すと、AI推定から教師修正への `level_correction_stats` と、次回以降のLLMプロンプトおよび協議レイヤーに入る `tuning_examples` がプロファイルへ保存されます。これにより、同じサンプルIDを丸暗記して上書きするのではなく、類似するTranscript量・流暢性指標・補正遷移がJudge協議の判断材料になります。
 
 補正適用・rollbackのたびに `changed_at` と `summary` 付きの履歴を残します。履歴は直近10件まで保持し、`Export` タブの `Recent profile changes` から任意の履歴へ戻せます。
 

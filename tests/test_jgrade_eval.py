@@ -4,6 +4,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from jgrade_eval.consensus import AutoCefrConsensus, ConsensusGate
+from jgrade_eval.deliberation import deliberate_auto_cefr
 from jgrade_eval.jfs_samples import (
     build_jfs_tuning_dataset,
     download_jfs_assets,
@@ -169,6 +170,48 @@ class AutoCefrConsensusTests(unittest.TestCase):
         self.assertEqual(decision.final_cefr_level, "B1")
         self.assertFalse(decision.has_strict_majority)
         self.assertTrue(decision.needs_human_review)
+
+    def test_deliberation_uses_similar_human_correction_as_calibration(self) -> None:
+        results = [
+            AutoLevelJudgeResult("A", "anthropic", "A2", Rating.PASS, 0.7, "test"),
+            AutoLevelJudgeResult("B", "openai", "A1", Rating.NEAR_FAIL, 0.6, "test"),
+            AutoLevelJudgeResult("C", "gemini", "A2", Rating.PASS, 0.7, "test"),
+        ]
+        objective_data = {
+            "raw_transcript_hiragana": "あ" * 580,
+            "fluency_metrics": {
+                "speech_ratio_pct": 65.0,
+                "mora_per_sec": 3.35,
+                "max_pause_sec": 4.8,
+            },
+        }
+        profile = TuningProfile(
+            tuning_examples=(
+                {
+                    "sample_id": "example-1",
+                    "previous_predicted_cefr": "A2",
+                    "corrected_cefr": "B1",
+                    "raw_transcript_hiragana": "い" * 587,
+                    "fluency_metrics": {
+                        "speech_ratio_pct": 65.0,
+                        "mora_per_sec": 3.35,
+                        "max_pause_sec": 4.8,
+                    },
+                },
+            )
+        )
+
+        deliberation = deliberate_auto_cefr(
+            results,
+            objective_data=objective_data,
+            profile=profile,
+        )
+
+        self.assertEqual(deliberation.raw_decision.final_cefr_level, "A2")
+        self.assertEqual(deliberation.final_decision.final_cefr_level, "B1")
+        self.assertTrue(deliberation.applied_calibration)
+        self.assertIn("A2->B1", deliberation.conclusion)
+        self.assertEqual(len(deliberation.judge_summaries), 3)
 
 
 class MetricsTests(unittest.TestCase):
@@ -705,7 +748,7 @@ class TuningTests(unittest.TestCase):
         self.assertIn("metrics:", prompt)
         self.assertIn("boundary:", prompt)
 
-    def test_level_correction_is_used_on_next_run(self) -> None:
+    def test_level_correction_is_used_as_calibration_on_next_run(self) -> None:
         dataset = {
             "name": "unit",
             "items": [
@@ -737,7 +780,8 @@ class TuningTests(unittest.TestCase):
 
         self.assertEqual(second["records"][0]["raw_predicted_cefr"], "B1")
         self.assertEqual(second["records"][0]["predicted_cefr"], "B2")
-        self.assertTrue(second["records"][0]["profile_override_applied"])
+        self.assertTrue(second["records"][0]["calibration_applied"])
+        self.assertIn("B1->B2", second["records"][0]["deliberation_conclusion"])
         self.assertEqual(second["metrics"]["accuracy"], 1.0)
         self.assertIn("teacher correction", compose_auto_cefr_system_prompt(tuned))
         self.assertIn("B1->B2", compose_auto_cefr_system_prompt(tuned))
@@ -757,7 +801,7 @@ class TuningTests(unittest.TestCase):
         self.assertEqual(selected, "B2")
         self.assertIsNone(skipped)
 
-    def test_console_level_feedback_saves_profile_override(self) -> None:
+    def test_console_level_feedback_saves_calibration_example(self) -> None:
         from tempfile import TemporaryDirectory
 
         record = {
@@ -779,9 +823,10 @@ class TuningTests(unittest.TestCase):
             )
             loaded = load_profile(profile_path)
 
-        self.assertEqual(updated.level_overrides["sample-1"], "B2")
-        self.assertEqual(loaded.level_overrides["sample-1"], "B2")
+        self.assertNotIn("sample-1", updated.level_overrides)
+        self.assertNotIn("sample-1", loaded.level_overrides)
         self.assertEqual(loaded.metadata["level_correction_stats"]["B1->B2"], 1)
+        self.assertEqual(loaded.tuning_examples[-1]["corrected_cefr"], "B2")
         self.assertEqual(loaded.tuning_examples[-1]["note"], "console final level feedback")
 
     def test_profile_history_keeps_last_ten_and_can_restore(self) -> None:

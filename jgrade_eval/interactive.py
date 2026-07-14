@@ -8,7 +8,7 @@ from getpass import getpass
 from pathlib import Path
 
 from .audio_pipeline import FluencyExtractor, ObjectiveExtractionError
-from .consensus import AutoCefrConsensus
+from .deliberation import AutoCefrDeliberation, deliberate_auto_cefr
 from .live_judges import (
     PROVIDER_KEY_ENVS,
     PROVIDER_MODEL_OPTIONS,
@@ -115,24 +115,21 @@ def run_interactive(
 
     print_auto_level_judge_results(auto_results)
 
-    print("\n[3/4] CEFR多数決を計算中...")
-    decision = AutoCefrConsensus().decide(auto_results)
-    raw_decision = decision
-    override_level = profile.level_overrides.get(review_sample_id) if profile else None
-    if override_level:
-        decision = replace(
-            decision,
-            final_cefr_level=override_level,
-            needs_human_review=True,
-        )
-    print_auto_cefr_consensus(decision)
-    if override_level:
-        print(f"プロファイル補正: raw={raw_decision.final_cefr_level} -> tuned={override_level}")
+    print("\n[3/4] CEFR協議を計算中...")
+    deliberation = deliberate_auto_cefr(
+        auto_results,
+        objective_data=objective_data,
+        profile=profile,
+    )
+    decision = deliberation.final_decision
+    raw_decision = deliberation.raw_decision
+    print_auto_cefr_consensus(deliberation)
 
     print_console_final_result(
         objective_data=objective_data,
         decision=decision,
         judge_results=auto_results,
+        deliberation=deliberation,
     )
 
     record = _build_review_record(
@@ -143,7 +140,8 @@ def run_interactive(
         raw_decision=raw_decision,
         auto_results=auto_results,
         judge_failures=judge_failures,
-        override_applied=bool(override_level),
+        calibration_applied=deliberation.applied_calibration,
+        deliberation=deliberation,
     )
     user_level = prompt_user_cefr_level(decision.final_cefr_level)
     if user_level:
@@ -176,7 +174,7 @@ def run_interactive(
                 "predicted_cefr": user_level,
                 "user_corrected_cefr": user_level,
                 "system_predicted_cefr_before_feedback": previous_level,
-                "profile_override_applied": True,
+                "calibration_applied": True,
                 "human_feedback_applied": True,
                 "needs_human_review": True,
             }
@@ -191,6 +189,7 @@ def run_interactive(
                 objective_data=objective_data,
                 decision=decision,
                 judge_results=auto_results,
+                deliberation=deliberation,
                 title="修正後の最終結果",
             )
     else:
@@ -335,18 +334,18 @@ def print_user_level_correction_summary(
     print("\n=== ユーザー補正 ===")
     print(f"ユーザー選択: {corrected_level}")
     print(f"SystemJudge: {previous_level}")
-    print("判定過程を自動修正しました。")
+    print("補正材料として保存しました。")
     if profile_path:
         print(f"  - 保存先プロファイル: {profile_path}")
     else:
         print("  - 保存先プロファイル: 未指定のため、この実行内だけに反映")
-    print(f"  - level_overrides[{sample_id}] = {corrected_level}")
+    print(f"  - 補正例 sample_id={sample_id}: {previous_level}->{corrected_level}")
     print(f"  - tuning_examples: {len(profile.tuning_examples)}件")
     transition = f"{previous_level}->{corrected_level}"
     correction_stats = profile.metadata.get("level_correction_stats", {})
     if isinstance(correction_stats, dict) and transition in correction_stats:
         print(f"  - level_correction_stats[{transition}] = {correction_stats[transition]}")
-    print("  - 修正後の最終CEFRをユーザー選択レベルに更新")
+    print("  - 次回以降は同一IDの強制上書きではなく、協議時の補正材料として使用")
 
 
 def _build_review_record(
@@ -358,7 +357,8 @@ def _build_review_record(
     raw_decision: AutoLevelDecision,
     auto_results: list[AutoLevelJudgeResult],
     judge_failures: list,
-    override_applied: bool,
+    calibration_applied: bool,
+    deliberation: AutoCefrDeliberation,
 ) -> dict:
     return {
         "sample_id": review_sample_id,
@@ -368,8 +368,23 @@ def _build_review_record(
         "raw_predicted_cefr": raw_decision.final_cefr_level,
         "predicted_cefr": decision.final_cefr_level,
         "predicted_task_rating": _aggregate_auto_task_rating(auto_results),
-        "profile_override_applied": override_applied,
+        "calibration_applied": calibration_applied,
         "needs_human_review": decision.needs_human_review or bool(judge_failures),
+        "deliberation": {
+            "judge_summaries": list(deliberation.judge_summaries),
+            "calibration_matches": [
+                {
+                    "sample_id": match.sample_id,
+                    "previous_level": match.previous_level,
+                    "corrected_level": match.corrected_level,
+                    "score": match.score,
+                    "summary": match.summary,
+                }
+                for match in deliberation.calibration_matches
+            ],
+            "conclusion": deliberation.conclusion,
+            "applied_calibration": deliberation.applied_calibration,
+        },
         "judge_results": [result.to_dict() for result in auto_results],
         "judge_failures": [
             {
@@ -647,11 +662,25 @@ def print_consensus(decision: RoleplayDecision) -> None:
     print(f"人間確認フラグ: {'yes' if decision.needs_human_review else 'no'}")
 
 
-def print_auto_cefr_consensus(decision: AutoLevelDecision) -> None:
-    print("\n=== CEFR多数決 ===")
+def print_auto_cefr_consensus(deliberation: AutoCefrDeliberation) -> None:
+    decision = deliberation.final_decision
+    raw_decision = deliberation.raw_decision
+    print("\n=== CEFR協議 ===")
+    print(f"多数決CEFR: {raw_decision.final_cefr_level}")
     print(f"最終CEFR推定: {decision.final_cefr_level}")
-    print(f"厳密な多数決: {'yes' if decision.has_strict_majority else 'no'}")
+    print(f"厳密な多数決: {'yes' if raw_decision.has_strict_majority else 'no'}")
+    print(f"補正材料の適用: {'yes' if deliberation.applied_calibration else 'no'}")
     print(f"人間確認フラグ: {'yes' if decision.needs_human_review else 'no'}")
+    print("3 Judge要約:")
+    for summary in deliberation.judge_summaries:
+        print(f"  - {summary}")
+    if deliberation.calibration_matches:
+        print("補正材料:")
+        for match in deliberation.calibration_matches:
+            print(f"  - {match.summary}")
+    else:
+        print("補正材料: 該当なし")
+    print(f"協議結論: {deliberation.conclusion}")
 
 
 def print_console_final_result(
@@ -659,6 +688,7 @@ def print_console_final_result(
     objective_data: dict,
     decision: AutoLevelDecision,
     judge_results: list[AutoLevelJudgeResult],
+    deliberation: AutoCefrDeliberation,
     title: str = "最終結果",
 ) -> None:
     metrics = objective_data["fluency_metrics"]
@@ -679,6 +709,7 @@ def print_console_final_result(
     print(f"人間確認: {'必要' if decision.needs_human_review else '不要'}")
     if rationale:
         print(f"理由: {rationale}")
+    print(f"協議理由: {deliberation.conclusion}")
     print("根拠:")
     print(f"  - ひらがなTranscript: {len(transcript)}文字")
     print(
@@ -694,6 +725,13 @@ def print_console_final_result(
             for result in judge_results
         )
     )
+    print("  - 3 Judge要約:")
+    for summary in deliberation.judge_summaries:
+        print(f"    * {summary}")
+    if deliberation.calibration_matches:
+        print("  - 補正材料:")
+        for match in deliberation.calibration_matches:
+            print(f"    * {match.summary}")
 
 
 def _aggregate_auto_confidence(
