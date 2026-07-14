@@ -243,8 +243,14 @@ def judge_auto_cefr_with_live_panel(
                 model_family=spec.provider,
                 system_prompt=system_prompt,
             )
-            response_text = _call_provider(spec, messages, timeout_sec=timeout_sec)
-            results.append(_parse_auto_level_response(response_text, judge_id, spec))
+            results.append(
+                _call_and_parse_auto_level(
+                    spec,
+                    messages,
+                    judge_id=judge_id,
+                    timeout_sec=timeout_sec,
+                )
+            )
         except Exception as exc:
             raise JudgeProviderError(
                 f"Judge {judge_id} ({format_provider_spec(spec)}) failed: {exc}"
@@ -271,8 +277,14 @@ def judge_auto_cefr_with_live_panel_partial(
                 model_family=spec.provider,
                 system_prompt=system_prompt,
             )
-            response_text = _call_provider(spec, messages, timeout_sec=timeout_sec)
-            results.append(_parse_auto_level_response(response_text, judge_id, spec))
+            results.append(
+                _call_and_parse_auto_level(
+                    spec,
+                    messages,
+                    judge_id=judge_id,
+                    timeout_sec=timeout_sec,
+                )
+            )
         except Exception as exc:
             failures.append(
                 JudgeFailure(
@@ -486,7 +498,7 @@ def _call_gemini(
         "contents": [{"role": "user", "parts": [{"text": messages["user"]}]}],
         "generationConfig": {
             "temperature": 0,
-            "maxOutputTokens": 1200,
+            "maxOutputTokens": 2000,
             "responseMimeType": "application/json",
         },
     }
@@ -584,6 +596,38 @@ def _parse_auto_level_response(
     parsed["judge_id"] = judge_id
     parsed["model_family"] = spec.provider
     return AutoLevelJudgeResult.from_dict(parsed)
+
+
+def _call_and_parse_auto_level(
+    spec: ProviderSpec,
+    messages: dict[str, str],
+    *,
+    judge_id: str,
+    timeout_sec: float,
+) -> AutoLevelJudgeResult:
+    retry_messages = messages
+    last_parse_error: Exception | None = None
+    for attempt in range(2):
+        response_text = _call_provider(spec, retry_messages, timeout_sec=timeout_sec)
+        try:
+            return _parse_auto_level_response(response_text, judge_id, spec)
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            last_parse_error = exc
+            if attempt == 1:
+                break
+            retry_messages = {
+                **messages,
+                "user": (
+                    f"{messages['user']}\n\n"
+                    "前回の応答はJSONとして解析できませんでした。"
+                    "説明文、Markdown、コードブロックを一切付けず、"
+                    "指定schemaを満たす1個の完全なJSON objectだけを返してください。"
+                    "必須キー: judge_id, model_family, predicted_cefr_level, "
+                    "task_rating, confidence, rationale, evidence, risk_flags。"
+                ),
+            }
+    assert last_parse_error is not None
+    raise last_parse_error
 
 
 def _extract_json_object(text: str) -> str:

@@ -586,6 +586,43 @@ class LiveJudgeConfigTests(unittest.TestCase):
         self.assertEqual(failures[0].judge_id, "B")
         self.assertIn("Gemini認証に失敗", failures[0].message)
 
+    def test_partial_live_panel_retries_invalid_json_once(self) -> None:
+        from unittest.mock import patch
+
+        calls = {"gemini": 0}
+        gemini_user_messages = []
+
+        def fake_call_provider(spec, messages, *, timeout_sec):
+            if spec.provider == "gemini":
+                calls["gemini"] += 1
+                gemini_user_messages.append(messages["user"])
+                if calls["gemini"] == 1:
+                    return '{"predicted_cefr_level":"C1",'
+            return (
+                '{"predicted_cefr_level":"C1","task_rating":"○",'
+                '"confidence":0.7,"rationale":"test","evidence":[],"risk_flags":[]}'
+            )
+
+        with patch("jgrade_eval.live_judges._call_provider", side_effect=fake_call_provider):
+            results, failures = judge_auto_cefr_with_live_panel_partial(
+                {
+                    "roleplay_task": "不明",
+                    "raw_transcript_hiragana": "しゃかいもんだいについてながくはなします",
+                    "fluency_metrics": {"mora_per_sec": 6.0},
+                },
+                [
+                    ProviderSpec("anthropic", "claude-sonnet-4-6"),
+                    ProviderSpec("openai", "gpt-5.4-mini"),
+                    ProviderSpec("gemini", "gemini-3.1-pro-preview"),
+                ],
+                timeout_sec=1,
+            )
+
+        self.assertEqual(len(results), 3)
+        self.assertEqual(failures, [])
+        self.assertEqual(calls["gemini"], 2)
+        self.assertIn("前回の応答はJSONとして解析できませんでした", gemini_user_messages[-1])
+
 
 class InteractiveCliTests(unittest.TestCase):
     def test_list_audio_files_filters_supported_extensions(self) -> None:
