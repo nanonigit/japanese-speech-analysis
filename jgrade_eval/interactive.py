@@ -530,7 +530,10 @@ def _prompt_provider_for_judge(
     print(f"\nJudge {judge_id} のプロバイダ:")
     for index, provider in enumerate(providers, 1):
         env_label = "/".join(PROVIDER_KEY_ENVS[provider])
-        print(f"  {index}. {provider} ({env_label})")
+        key_state = _format_provider_key_state(
+            ProviderSpec(provider=provider, model=PROVIDER_MODEL_OPTIONS[provider][0])
+        )
+        print(f"  {index}. {provider} ({env_label}) [{key_state}]")
     if allow_skip:
         print(f"  {len(providers) + 1}. スキップして判定へ進む")
     selected = _prompt_index("番号", len(providers) + 1 if allow_skip else len(providers))

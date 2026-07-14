@@ -631,7 +631,8 @@ class InteractiveCliTests(unittest.TestCase):
         with patch.dict(os.environ, env, clear=True):
             with patch("jgrade_eval.interactive.validate_provider_key", side_effect=valid_status):
                 with patch("builtins.input", side_effect=["1", "1", "1", "1", "4"]):
-                    with redirect_stdout(io.StringIO()):
+                    output = io.StringIO()
+                    with redirect_stdout(output):
                         specs = prompt_provider_specs()
 
         self.assertEqual(
@@ -641,6 +642,8 @@ class InteractiveCliTests(unittest.TestCase):
                 ProviderSpec("openai", "gpt-5.4-mini"),
             ],
         )
+        self.assertIn("anthropic (ANTHROPIC_API_KEY) [key=valid", output.getvalue())
+        self.assertIn("openai (OPENAI_API_KEY) [key=valid", output.getvalue())
 
     def test_prompt_provider_specs_can_skip_invalid_provider_key(self) -> None:
         import io
