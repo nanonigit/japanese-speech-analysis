@@ -144,7 +144,7 @@ JGRADE_JUDGE_PROVIDERS=anthropic:claude-sonnet-4-6,openai:gpt-5.4-mini,gemini:ge
 ./run_jgrade_console.command
 ```
 
-起動直後に `=== Judge設定 ===` が表示されます。ここで `mock Judgeで試す`、`設定ファイルのJudge 1〜3を使う`、`Judge 1〜3をこの画面で選ぶ` から選択できます。実LLM Judge候補には `key=set`、`key=missing`、`key=invalid` のようにAPIキー状態が表示されます。APIキーの値そのものは表示しません。
+起動直後に `=== Judge設定 ===` が表示されます。ここで `mock Judgeで試す`、`設定ファイルのJudge 1〜3を使う`、`Judge 1〜3をこの画面で選ぶ` から選択できます。実LLM Judge候補には `key=valid`、`key=unchecked`、`key=missing`、`key=invalid` のようにAPIキー状態が表示されます。`valid` はプロバイダAPIで認証確認済み、`unchecked` はキーはあるがネットワーク等で確認未完了、`missing` は未設定、`invalid` は形式または認証に失敗した状態です。APIキーの値そのものは表示しません。
 
 Judge設定の後に、ファイル選択ダイアログ、パス入力、または `audio/` 内のサンプル音声から音声を選べます。出口はコンソール末尾の `=== 最終結果 ===` です。ここに `CEFRレベル`、`タスク達成度`、`信頼度`、`人間確認`、判定理由、ひらがなTranscript量、流暢性指標、Judgeごとの推定レベルが表示されます。
 

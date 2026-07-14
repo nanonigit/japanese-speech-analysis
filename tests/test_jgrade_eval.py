@@ -20,12 +20,15 @@ from jgrade_eval.interactive import (
     prompt_provider_specs,
 )
 from jgrade_eval.live_judges import (
+    ProviderKeyStatus,
+    ProviderKeyValidationHTTPError,
     ProviderSpec,
     _extract_json_object,
     judge_auto_cefr_with_live_panel_partial,
     missing_key_envs,
     parse_provider_specs,
     provider_key_status,
+    validate_provider_key,
 )
 from jgrade_eval.judge_config import load_judge_console_config
 from jgrade_eval.metrics import evaluate_against_humans
@@ -456,13 +459,58 @@ class LiveJudgeConfigTests(unittest.TestCase):
         from unittest.mock import patch
 
         with patch.dict(os.environ, {"OPENAI_API_KEY": "ok"}, clear=True):
-            self.assertEqual(_format_provider_key_state("openai"), "key=set (OPENAI_API_KEY)")
+            with patch("jgrade_eval.live_judges._get_json", return_value={"data": []}):
+                self.assertEqual(
+                    _format_provider_key_state(ProviderSpec("openai", "gpt-5.4-mini")),
+                    "key=valid (OPENAI_API_KEY)",
+                )
             self.assertEqual(
-                _format_provider_key_state("anthropic"),
+                _format_provider_key_state(ProviderSpec("anthropic", "claude-sonnet-4-6")),
                 "key=missing (ANTHROPIC_API_KEY)",
             )
         with patch.dict(os.environ, {"GEMINI_API_KEY": "not-google-ai-studio-key"}, clear=True):
-            self.assertEqual(_format_provider_key_state("gemini"), "key=invalid (GEMINI_API_KEY)")
+            self.assertEqual(
+                _format_provider_key_state(ProviderSpec("gemini", "gemini-3.1-pro-preview")),
+                "key=invalid (GEMINI_API_KEY)",
+            )
+
+    def test_validate_provider_key_confirms_openai_key_with_provider_api(self) -> None:
+        import os
+        from unittest.mock import patch
+
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "ok"}, clear=True):
+            with patch("jgrade_eval.live_judges._get_json", return_value={"data": []}) as get_json:
+                status = validate_provider_key(ProviderSpec("openai", "gpt-5.4-mini"))
+
+        self.assertTrue(status.ok)
+        self.assertEqual(status.state, "valid")
+        self.assertEqual(status.env_name, "OPENAI_API_KEY")
+        self.assertEqual(get_json.call_count, 1)
+
+    def test_validate_provider_key_marks_auth_failure_invalid(self) -> None:
+        import os
+        from unittest.mock import patch
+
+        with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "bad"}, clear=True):
+            with patch(
+                "jgrade_eval.live_judges._get_json",
+                side_effect=ProviderKeyValidationHTTPError(401, "unauthorized"),
+            ):
+                status = validate_provider_key(ProviderSpec("anthropic", "claude-sonnet-4-6"))
+
+        self.assertFalse(status.ok)
+        self.assertEqual(status.state, "invalid")
+
+    def test_validate_provider_key_keeps_network_errors_unchecked(self) -> None:
+        import os
+        from unittest.mock import patch
+
+        with patch.dict(os.environ, {"GROQ_API_KEY": "ok"}, clear=True):
+            with patch("jgrade_eval.live_judges._get_json", side_effect=RuntimeError("timeout")):
+                status = validate_provider_key(ProviderSpec("groq", "llama-3.3-70b-versatile"))
+
+        self.assertFalse(status.ok)
+        self.assertEqual(status.state, "unchecked")
 
     def test_partial_live_panel_keeps_successful_judges(self) -> None:
         from unittest.mock import patch
@@ -531,10 +579,17 @@ class InteractiveCliTests(unittest.TestCase):
         # C: skip. If anthropic appeared again for B, this input would select it
         # and the assertion below would fail.
         env = {"ANTHROPIC_API_KEY": "ok", "OPENAI_API_KEY": "ok"}
+        def valid_status(spec):
+            env_name = f"{spec.provider.upper()}_API_KEY"
+            if spec.provider == "anthropic":
+                env_name = "ANTHROPIC_API_KEY"
+            return ProviderKeyStatus(spec.provider, env_name, "valid", "ok")
+
         with patch.dict(os.environ, env, clear=True):
-            with patch("builtins.input", side_effect=["1", "1", "1", "1", "4"]):
-                with redirect_stdout(io.StringIO()):
-                    specs = prompt_provider_specs()
+            with patch("jgrade_eval.interactive.validate_provider_key", side_effect=valid_status):
+                with patch("builtins.input", side_effect=["1", "1", "1", "1", "4"]):
+                    with redirect_stdout(io.StringIO()):
+                        specs = prompt_provider_specs()
 
         self.assertEqual(
             specs,
@@ -551,9 +606,15 @@ class InteractiveCliTests(unittest.TestCase):
         from unittest.mock import patch
 
         with patch.dict(os.environ, {"GEMINI_API_KEY": "bad-key", "OPENAI_API_KEY": "ok"}, clear=True):
-            with patch("builtins.input", side_effect=["3", "1", "2", "2", "1", "5"]):
-                with redirect_stdout(io.StringIO()):
-                    specs = prompt_provider_specs()
+            def status_for_skip(spec):
+                if spec.provider == "gemini":
+                    return ProviderKeyStatus("gemini", "GEMINI_API_KEY", "invalid", "bad")
+                return ProviderKeyStatus(spec.provider, f"{spec.provider.upper()}_API_KEY", "valid", "ok")
+
+            with patch("jgrade_eval.interactive.validate_provider_key", side_effect=status_for_skip):
+                with patch("builtins.input", side_effect=["3", "1", "2", "2", "1", "5"]):
+                    with redirect_stdout(io.StringIO()):
+                        specs = prompt_provider_specs()
 
         self.assertEqual(specs, [ProviderSpec("openai", "gpt-5.4-mini")])
 

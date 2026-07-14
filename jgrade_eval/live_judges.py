@@ -60,7 +60,16 @@ class ProviderKeyStatus:
 
     @property
     def ok(self) -> bool:
-        return self.state == "ok"
+        return self.state in {"ok", "valid"}
+
+
+class ProviderKeyValidationHTTPError(RuntimeError):
+    """Raised when provider key validation receives an HTTP error."""
+
+    def __init__(self, code: int, body: str):
+        self.code = code
+        self.body = body
+        super().__init__(f"Provider HTTP error {code}: {body}")
 
 
 def parse_provider_specs(value: str | None) -> list[ProviderSpec]:
@@ -121,6 +130,58 @@ def provider_key_status(provider: str) -> ProviderKeyStatus:
         env_names[0],
         "missing",
         f"{'/'.join(env_names)} が未設定です。",
+    )
+
+
+def validate_provider_key(
+    spec: ProviderSpec,
+    *,
+    timeout_sec: float = 6,
+) -> ProviderKeyStatus:
+    status = provider_key_status(spec.provider)
+    if status.state in {"missing", "invalid"}:
+        return status
+    if not status.env_name:
+        return status
+
+    endpoint = _key_validation_endpoint(spec, status.env_name)
+    if endpoint is None:
+        return ProviderKeyStatus(
+            spec.provider,
+            status.env_name,
+            "unchecked",
+            f"{format_provider_spec(spec)} はAPIキーの疎通確認に未対応です。",
+        )
+
+    try:
+        _get_json(endpoint["url"], headers=endpoint["headers"], timeout_sec=timeout_sec)
+    except ProviderKeyValidationHTTPError as exc:
+        if exc.code in {400, 401, 403} or _looks_like_auth_error(exc.body):
+            return ProviderKeyStatus(
+                spec.provider,
+                status.env_name,
+                "invalid",
+                f"{status.env_name} は設定済みですが、プロバイダAPIの認証に失敗しました。",
+            )
+        return ProviderKeyStatus(
+            spec.provider,
+            status.env_name,
+            "unchecked",
+            f"{status.env_name} は設定済みですが、API疎通確認を完了できませんでした。",
+        )
+    except Exception as exc:
+        return ProviderKeyStatus(
+            spec.provider,
+            status.env_name,
+            "unchecked",
+            f"{status.env_name} は設定済みですが、API疎通確認を完了できませんでした: {exc}",
+        )
+
+    return ProviderKeyStatus(
+        spec.provider,
+        status.env_name,
+        "valid",
+        f"{status.env_name} はプロバイダAPIで有効確認済みです。",
     )
 
 
@@ -251,6 +312,56 @@ def _validate_provider_specs(provider_specs: list[ProviderSpec]) -> None:
     duplicates = sorted({provider for provider in providers if providers.count(provider) > 1})
     if duplicates:
         raise ValueError(f"Judge providers must be unique: {', '.join(duplicates)}")
+
+
+def _key_validation_endpoint(spec: ProviderSpec, env_name: str) -> dict[str, object] | None:
+    api_key = os.environ.get(env_name, "").strip()
+    if spec.provider == "anthropic":
+        return {
+            "url": "https://api.anthropic.com/v1/models",
+            "headers": {
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+            },
+        }
+    if spec.provider == "openai":
+        return {
+            "url": "https://api.openai.com/v1/models",
+            "headers": {"Authorization": f"Bearer {api_key}"},
+        }
+    if spec.provider == "gemini":
+        return {
+            "url": (
+                "https://generativelanguage.googleapis.com/v1beta/models"
+                f"?key={parse.quote(api_key, safe='')}"
+            ),
+            "headers": {},
+        }
+    if spec.provider == "groq":
+        return {
+            "url": "https://api.groq.com/openai/v1/models",
+            "headers": {"Authorization": f"Bearer {api_key}"},
+        }
+    if spec.provider == "xai":
+        return {
+            "url": "https://api.x.ai/v1/models",
+            "headers": {"Authorization": f"Bearer {api_key}"},
+        }
+    return None
+
+
+def _looks_like_auth_error(text: str) -> bool:
+    auth_markers = (
+        "unauthorized",
+        "unauthenticated",
+        "invalid api key",
+        "invalid_api_key",
+        "permission_denied",
+        "api key not valid",
+        "access_token_type_unsupported",
+    )
+    lowered = text.lower()
+    return any(marker in lowered for marker in auth_markers)
 
 
 def _format_provider_failure(spec: ProviderSpec, exc: Exception) -> str:
@@ -406,6 +517,23 @@ def _post_json(
         raise RuntimeError(
             f"Provider HTTP error {exc.code}: {response_body}"
         ) from exc
+    except error.URLError as exc:
+        raise RuntimeError(f"Provider request failed: {exc.reason}") from exc
+
+
+def _get_json(
+    url: str,
+    *,
+    headers: dict[str, str],
+    timeout_sec: float,
+) -> dict:
+    req = request.Request(url, headers=headers, method="GET")
+    try:
+        with request.urlopen(req, timeout=timeout_sec, context=_ssl_context()) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except error.HTTPError as exc:
+        response_body = exc.read().decode("utf-8", errors="replace")[:2000]
+        raise ProviderKeyValidationHTTPError(exc.code, response_body) from exc
     except error.URLError as exc:
         raise RuntimeError(f"Provider request failed: {exc.reason}") from exc
 

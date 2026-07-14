@@ -58,7 +58,7 @@ Judge設定は `config/judge_llms.json` にあります。コードは編集し�
 - `設定ファイルのJudge 1〜3を使う`: `config/judge_llms.json` の設定で実LLM評価する
 - `Judge 1〜3をこの画面で選ぶ`: 起動時にprovider/modelを選び直す
 
-実LLM Judge候補には `key=set`、`key=missing`、`key=invalid` のようにAPIキー状態が表示されます。APIキーの値そのものは表示されません。
+実LLM Judge候補には `key=valid`、`key=unchecked`、`key=missing`、`key=invalid` のようにAPIキー状態が表示されます。`valid` はプロバイダAPIで認証確認済み、`unchecked` はキーはあるがネットワーク等で確認未完了、`missing` は未設定、`invalid` は形式または認証に失敗した状態です。APIキーの値そのものは表示されません。
 
 起動後、以下から選べます。
 

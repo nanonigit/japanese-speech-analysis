@@ -16,7 +16,7 @@ from .live_judges import (
     format_provider_spec,
     judge_auto_cefr_with_live_panel_partial,
     missing_key_envs,
-    provider_key_status,
+    validate_provider_key,
 )
 from .mock_judges import judge_auto_cefr_with_mock_panel
 from .models import (
@@ -213,7 +213,7 @@ def prompt_judge_setup(
     while True:
         print("\n=== Judge設定 ===")
         print("最初に評価に使うJudgeを選んでください。")
-        print("APIキーの値は表示しません。設定済みかどうかだけ表示します。")
+        print("APIキーの値は表示しません。有効性の確認結果だけ表示します。")
         if configured_specs:
             print_provider_key_summary(configured_specs)
         else:
@@ -255,15 +255,19 @@ def print_provider_key_summary(provider_specs: list[ProviderSpec]) -> None:
     for judge_number, spec in enumerate(provider_specs, 1):
         print(
             f"  Judge {judge_number}: {format_provider_spec(spec)} "
-            f"[{_format_provider_key_state(spec.provider)}]"
+            f"[{_format_provider_key_state(spec)}]"
         )
 
 
-def _format_provider_key_state(provider: str) -> str:
-    status = provider_key_status(provider)
-    if status.ok:
+def _format_provider_key_state(spec: ProviderSpec) -> str:
+    status = validate_provider_key(spec)
+    if status.state == "valid":
+        return f"key=valid ({status.env_name})"
+    if status.state == "ok":
         return f"key=set ({status.env_name})" if status.env_name else "key=not-required"
-    env_name = status.env_name or "/".join(PROVIDER_KEY_ENVS.get(provider, ()))
+    if status.state == "unchecked":
+        return f"key=unchecked ({status.env_name})"
+    env_name = status.env_name or "/".join(PROVIDER_KEY_ENVS.get(spec.provider, ()))
     label = "key=missing" if status.state == "missing" else f"key={status.state}"
     return f"{label} ({env_name})" if env_name else label
 
@@ -537,9 +541,14 @@ def _prompt_provider_for_judge(
 
 def _confirm_or_fix_provider_key(judge_id: str, spec: ProviderSpec) -> bool:
     while True:
-        status = provider_key_status(spec.provider)
+        status = validate_provider_key(spec)
         if status.ok:
-            print(f"  -> {spec.provider}: key set ({status.env_name})")
+            state_label = "valid" if status.state == "valid" else "set"
+            print(f"  -> {spec.provider}: key {state_label} ({status.env_name})")
+            return True
+        if status.state == "unchecked":
+            print(f"  -> {spec.provider}: key unchecked ({status.env_name})")
+            print("     API疎通確認は完了できませんでした。設定済みキーとして続行します。")
             return True
 
         print(f"\n[キー確認] Judge {judge_id}: {format_provider_spec(spec)}")
