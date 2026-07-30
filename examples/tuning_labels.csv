@@ -1,0 +1,4 @@
+sample_id,audio_path,human_cefr,human_rating,notes
+burmese_japanese_1min,audio/burmese_japanese_1min.mp3,B1,○,sample fixture
+indonesian_japanese_1min,audio/indonesian_japanese_1min.mp3,A2,○,sample fixture
+vietnamese_japanese_1min,audio/vietnamese_japanese_1min.mp3,A2,○,sample fixture

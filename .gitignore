@@ -23,3 +23,10 @@ hiragana-asr/models/checkpoints/
 # 一時ファイル
 *.tmp
 *.log
+audio/*_JFS_RPT.mp3
+audio/*_JFS_PRT.mp3
+outputs/
+data/tuning/
+data/external/
+.env
+.env.local

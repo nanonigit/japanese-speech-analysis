@@ -1,0 +1,33 @@
+{
+  "judge_mode": "mock",
+  "audio_dir": "audio",
+  "profile": "tuning_profiles/base.json",
+  "live_judges": [
+    {
+      "judge_id": "A",
+      "enabled": true,
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "api_key_env": "ANTHROPIC_API_KEY"
+    },
+    {
+      "judge_id": "B",
+      "enabled": true,
+      "provider": "openai",
+      "model": "gpt-5.4-mini",
+      "api_key_env": "OPENAI_API_KEY"
+    },
+    {
+      "judge_id": "C",
+      "enabled": true,
+      "provider": "gemini",
+      "model": "gemini-3.1-pro-preview",
+      "api_key_env": "GEMINI_API_KEY"
+    }
+  ],
+  "notes": [
+    "Default judge_mode is mock so collaborators can run the console without API keys.",
+    "For real LLM evaluation, copy .env.example to .env, add the needed keys, then change judge_mode to live.",
+    "Choose one to three enabled live_judges. Providers must be unique."
+  ]
+}
