@@ -2,6 +2,7 @@ import json
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import Mock, patch
 
 from jgrade_eval.consensus import AutoCefrConsensus, ConsensusGate
 from jgrade_eval.deliberation import deliberate_auto_cefr
@@ -17,9 +18,12 @@ from jgrade_eval.interactive import (
     _upsert_env_value,
     apply_and_save_user_level_correction,
     list_audio_files,
+    print_objective_data,
     prompt_user_cefr_level,
     prompt_provider_specs,
+    run_interactive,
 )
+from jgrade_eval.range import RangeExtractor
 from jgrade_eval.live_judges import (
     ProviderKeyStatus,
     ProviderKeyValidationHTTPError,
@@ -714,6 +718,136 @@ class InteractiveCliTests(unittest.TestCase):
         self.assertIn("GEMINI_API_KEY=AIza-new", text)
         self.assertIn("OPENAI_API_KEY=x", text)
         self.assertNotIn("GEMINI_API_KEY=old", text)
+
+    def test_print_objective_data_separates_fluency_and_range_evidence(self) -> None:
+        import io
+        from contextlib import redirect_stdout
+
+        objective_data = {
+            "audio_path": "sample.wav",
+            "stt_model": "test-stt",
+            "vad_model": "test-vad",
+            "raw_transcript_hiragana": "わたしはすしがすきです",
+            "fluency_metrics": {
+                "audio_duration_sec": 3.0,
+                "speech_sec": 2.0,
+                "speech_ratio_pct": 66.7,
+                "pause_count": 1,
+                "avg_pause_sec": 0.4,
+                "max_pause_sec": 0.4,
+                "mora_count": 11,
+                "mora_per_sec": 5.5,
+                "fluency_grade": "B",
+            },
+            "top_pauses": [],
+            "range_data": {
+                "tokens": [
+                    {
+                        "surface": "わたし",
+                        "dictionary_form": "私",
+                        "reading_hiragana": "わたし",
+                        "part_of_speech": ["代名詞"],
+                        "is_lexical": True,
+                        "jlpt_candidates": [{"surface": "私", "jlpt_level": "N5"}],
+                        "selected_jlpt_level": "N5",
+                    }
+                ],
+                "statistics": {
+                    "token_count": 6,
+                    "lexical_token_count": 3,
+                    "unique_lemma_count": 3,
+                    "ttr": 1.0,
+                    "known_token_count": 2,
+                    "unknown_token_count": 1,
+                    "unknown_token_rate": 0.3333,
+                },
+                "jlpt_distribution": {
+                    "N5": {"token_count": 2, "unique_lemma_count": 2},
+                    "N4": {"token_count": 0, "unique_lemma_count": 0},
+                    "N3": {"token_count": 0, "unique_lemma_count": 0},
+                    "N2": {"token_count": 0, "unique_lemma_count": 0},
+                    "N1": {"token_count": 0, "unique_lemma_count": 0},
+                },
+                "ambiguity_count": 1,
+                "dictionary_version": "test-dict",
+                "tokenizer_version": "test-tokenizer",
+                "split_mode": "A",
+            },
+        }
+
+        output = io.StringIO()
+        with redirect_stdout(output):
+            print_objective_data(objective_data)
+
+        rendered = output.getvalue()
+        self.assertIn("=== Fluency客観データ ===", rendered)
+        self.assertIn("=== Range客観データ ===", rendered)
+        self.assertIn("語彙TTR: 1.0", rendered)
+        self.assertIn("JLPT N5: token=2 / unique_lemma=2", rendered)
+        self.assertNotIn("=== 客観データ ===", rendered)
+
+    def test_interactive_adds_range_evidence_without_prompting_for_user_cefr(self) -> None:
+        import io
+        from contextlib import redirect_stdout
+
+        objective_data = {
+            "audio_path": "sample.wav",
+            "stt_model": "test-stt",
+            "vad_model": "test-vad",
+            "raw_transcript_hiragana": "わたしはすしがすきです",
+            "fluency_metrics": {
+                "audio_duration_sec": 3.0,
+                "speech_sec": 2.0,
+                "speech_ratio_pct": 66.7,
+                "pause_count": 1,
+                "avg_pause_sec": 0.4,
+                "max_pause_sec": 0.4,
+                "mora_count": 11,
+                "mora_per_sec": 5.5,
+                "fluency_grade": "B",
+            },
+            "top_pauses": [],
+        }
+        range_data = {
+            "tokens": [],
+            "statistics": {
+                "token_count": 0,
+                "lexical_token_count": 0,
+                "unique_lemma_count": 0,
+                "ttr": 0.0,
+                "known_token_count": 0,
+                "unknown_token_count": 0,
+                "unknown_token_rate": 0.0,
+            },
+            "jlpt_distribution": {level: {"token_count": 0, "unique_lemma_count": 0} for level in ("N5", "N4", "N3", "N2", "N1")},
+            "ambiguity_count": 0,
+            "dictionary_version": "test-dict",
+            "tokenizer_version": "test-tokenizer",
+            "split_mode": "A",
+        }
+        fluency_extractor = Mock()
+        fluency_extractor.extract.return_value = objective_data
+        range_extractor = Mock()
+        range_extractor.analyze.return_value = range_data
+
+        with (
+            patch("jgrade_eval.interactive.prompt_judge_setup", return_value=("mock", [])),
+            patch("jgrade_eval.interactive.prompt_audio_choice", return_value=Path("sample.wav")),
+            patch("jgrade_eval.interactive.FluencyExtractor", return_value=fluency_extractor),
+            patch.object(RangeExtractor, "default", return_value=range_extractor),
+            patch("jgrade_eval.interactive.prompt_user_cefr_level", return_value=None) as prompt_level,
+        ):
+            with redirect_stdout(io.StringIO()):
+                run_interactive(
+                    audio_dir=Path("."),
+                    judge_mode="mock",
+                    provider_specs=[],
+                    timeout_sec=1.0,
+                    review_store_path=None,
+                )
+
+        range_extractor.analyze.assert_called_once_with("わたしはすしがすきです")
+        prompt_level.assert_not_called()
 
 
 class TuningTests(unittest.TestCase):

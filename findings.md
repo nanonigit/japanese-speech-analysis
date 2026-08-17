@@ -15,6 +15,12 @@
 - `evaluate_speech_level()` creates `roleplay_input`, invokes mock or live Judges, then invokes deliberation.
 - The API tests replace `FluencyExtractor` with a lightweight fake, so Range integration must remain injectable or deterministic in tests.
 
+## Console evidence presentation
+
+- The interactive console currently labels the complete extraction step as one generic objective-data stage, although Fluency and Range are distinct deterministic modules.
+- It also prints a single combined objective-data heading and calls `prompt_user_cefr_level()` after the Judge and deliberation stages.
+- The revised console must expose Fluency and Range as separate processing/evidence stages, pass `range_data` to the Judge input, and defer manual CEFR correction rather than prompting during evidence-focused runs.
+
 ## Dictionary research
 
 - The selected `JLPT_vocab_ALL.json` records readings and numerical JLPT levels where N1 is `1` and N5 is `5`.

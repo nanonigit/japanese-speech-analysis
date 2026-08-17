@@ -2,6 +2,11 @@
 
 ## Session: 2026-08-17
 
+### Phase 5: Console evidence presentation
+
+- **Status:** in progress
+- Intended user journey: an evaluator can see which deterministic module produced each set of objective evidence without being interrupted by a manual CEFR-level correction prompt.
+
 ### Phase 1: Requirements and test design
 
 - **Status:** complete

@@ -6,7 +6,7 @@ Add a deterministic lexical Range module that turns Fluency's hiragana transcrip
 
 ## Current Phase
 
-Complete
+Phase 5: Console evidence presentation
 
 ## Phases
 
@@ -36,6 +36,14 @@ Complete
 - [x] Review the diff and generate a code-derived UML sequence diagram.
 - [x] Compare the UML with the agreed target diagram.
 - **Status:** complete
+
+### Phase 5: Console evidence presentation
+
+- [ ] Show distinct Fluency and Range processing stages in the interactive console.
+- [ ] Print separate Fluency and Range objective-evidence sections.
+- [ ] Remove the interactive human CEFR-level selection prompt.
+- [ ] Verify the revised console flow with focused and full automated tests.
+- **Status:** in progress
 
 ## Decisions Made
 
