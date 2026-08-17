@@ -12,6 +12,14 @@
   - Full suite passed: 57 tests.
   - The console-focused test subset covers the revised flows; the historical `interactive.py` module is 55% covered overall because it includes provider setup, credential validation, and legacy correction helpers outside this change.
 
+### Phase 6: Runtime dependency repair
+
+- **Status:** in progress
+- Bug Hunter evidence recorded in `docs/bug_reports/range-runtime-dependency-2026-08-17.md` and its Japanese translation.
+- The failure was reproduced with `.venv/bin/python`; this is the same interpreter used by the terminal launcher.
+- `uv lock` and `uv sync --frozen --offline` added the pinned Sudachi runtime dependencies to the lockfile and launcher environment.
+- The default Range extractor regression test and the full suite are green under `.venv/bin/python` (58 tests).
+
 ### Phase 1: Requirements and test design
 
 - **Status:** complete
