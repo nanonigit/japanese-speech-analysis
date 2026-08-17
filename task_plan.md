@@ -6,7 +6,7 @@ Add a deterministic lexical Range module that turns Fluency's hiragana transcrip
 
 ## Current Phase
 
-Phase 1 — requirements and test design
+Phase 3 — API and Judge evidence integration
 
 ## Phases
 
@@ -14,21 +14,21 @@ Phase 1 — requirements and test design
 
 - [x] Confirm current API and Fluency handoff.
 - [x] Record accepted scope and exclusions.
-- [ ] Add failing Range unit and API integration tests.
-- **Status:** in_progress
+- [x] Add failing Range unit tests and validate RED.
+- **Status:** complete
 
 ### Phase 2: Range core
 
-- [ ] Implement deterministic token, lookup, and aggregate logic.
-- [ ] Run focused tests and commit the green core.
-- **Status:** pending
+- [x] Implement deterministic token, lookup, and aggregate logic.
+- [x] Run focused tests and commit the green core.
+- **Status:** complete
 
 ### Phase 3: API and Judge evidence integration
 
 - [ ] Attach Range data to objective data and Judge input.
 - [ ] Update prompt contract and API tests.
 - [ ] Run focused tests and commit the green integration.
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 4: Verification and UML
 

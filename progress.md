@@ -9,6 +9,7 @@
   - Inspected the Fluency-to-API-to-Judge flow and existing API tests.
   - Confirmed that no implementation changes existed before this task.
   - Recorded the scope and commit/rollback workflow.
+  - Added and ran a failing Range test target, then implemented the minimal pure Range core.
 - Files created:
   - `task_plan.md`
   - `findings.md`
@@ -19,6 +20,7 @@
 | Test | Expected | Actual | Status |
 |---|---|---|---|
 | Range tests | Not written yet | Not run | pending |
+| Range core unit tests | `python3 -m unittest tests.test_range -v` | 5 passing tests | 5 passing tests | pass |
 
 Attempted `uv run python -m unittest tests.test_range -v`; the shell reported `uv: command not found`. The command did not execute the test target, so it is not treated as the required RED gate.
 
