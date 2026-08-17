@@ -50,4 +50,4 @@ Phase 1 — requirements and test design
 
 | Error | Attempt | Resolution |
 |---|---:|---|
-| None | 0 | — |
+| `uv` command not found | 1 | Use the repository virtual environment directly; this is not a valid RED result. |

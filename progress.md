@@ -20,8 +20,10 @@
 |---|---|---|---|
 | Range tests | Not written yet | Not run | pending |
 
+Attempted `uv run python -m unittest tests.test_range -v`; the shell reported `uv: command not found`. The command did not execute the test target, so it is not treated as the required RED gate.
+
 ## Error Log
 
 | Error | Attempt | Resolution |
 |---|---:|---|
-| None | 0 | — |
+| `uv: command not found` | 1 | Switched to inspecting and using the existing project virtual environment. |
