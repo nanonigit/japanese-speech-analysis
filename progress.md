@@ -21,6 +21,7 @@
 |---|---|---|---|
 | Range tests | Not written yet | Not run | pending |
 | Range core unit tests | `python3 -m unittest tests.test_range -v` | 5 passing tests | 5 passing tests | pass |
+| Range API integration RED | `python3 -m unittest tests.test_jgrade_api.JGradeApiTests.test_service_exposes_range_data_to_response_and_judges -v` | Missing Range injection | `TypeError: unexpected keyword argument 'range_extractor'` | expected RED |
 
 Attempted `uv run python -m unittest tests.test_range -v`; the shell reported `uv: command not found`. The command did not execute the test target, so it is not treated as the required RED gate.
 
