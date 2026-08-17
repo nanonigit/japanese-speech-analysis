@@ -21,6 +21,14 @@
 - It also prints a single combined objective-data heading and calls `prompt_user_cefr_level()` after the Judge and deliberation stages.
 - The revised console must expose Fluency and Range as separate processing/evidence stages, pass `range_data` to the Judge input, and defer manual CEFR correction rather than prompting during evidence-focused runs.
 
+## Runtime dependency incident: 2026-08-17
+
+- **Observed symptom:** the terminal console completed Fluency, then failed at Range with `ModuleNotFoundError: No module named 'sudachipy'`.
+- **Reproduction:** `.venv/bin/python -c "from jgrade_eval.range import RangeExtractor; RangeExtractor.default()"` fails; the system `python3` succeeds.
+- **Immediate cause:** the launcher always uses `.venv/bin/python`, but that environment lacks both `SudachiPy` and `SudachiDict-core`.
+- **Root cause:** the Range dependency was added to `pyproject.toml` without synchronizing `uv.lock` and the already-created `.venv`; prior tests ran with the system Python rather than the launcher interpreter.
+- **Repair contract:** add a default-extractor test and execute it with `.venv/bin/python`; regenerate the lock and synchronize `.venv` before console smoke testing.
+
 ## Dictionary research
 
 - The selected `JLPT_vocab_ALL.json` records readings and numerical JLPT levels where N1 is `1` and N5 is `5`.

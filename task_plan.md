@@ -6,7 +6,7 @@ Add a deterministic lexical Range module that turns Fluency's hiragana transcrip
 
 ## Current Phase
 
-Complete
+Phase 6: Runtime dependency repair
 
 ## Phases
 
@@ -44,6 +44,14 @@ Complete
 - [x] Remove the interactive human CEFR-level selection prompt.
 - [x] Verify the revised console flow with focused and full automated tests.
 - **Status:** complete
+
+### Phase 6: Runtime dependency repair
+
+- [x] Reproduce the console failure with the launcher Python interpreter.
+- [x] Add a launcher-environment regression test for the default Range extractor.
+- [ ] Synchronize the locked dependencies and `.venv` with the Range requirements.
+- [ ] Verify the console smoke path without a live Judge.
+- **Status:** in progress
 
 ## Decisions Made
 

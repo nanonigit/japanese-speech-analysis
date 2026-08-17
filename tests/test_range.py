@@ -14,6 +14,13 @@ class FakeTokenizer:
 
 
 class RangeExtractorTests(unittest.TestCase):
+    def test_default_extractor_runs_with_the_bundled_sudachi_dependencies(self) -> None:
+        data = RangeExtractor.default().analyze("わたしはすしがすきです")
+
+        self.assertEqual(data["tokenizer_version"].split(" ", 1)[0], "SudachiPy")
+        self.assertEqual(data["split_mode"], "A")
+        self.assertEqual(data["statistics"]["token_count"], 6)
+
     def test_reports_lexical_statistics_and_jlpt_distribution(self) -> None:
         tokenizer = FakeTokenizer(
             [
