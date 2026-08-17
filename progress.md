@@ -4,8 +4,13 @@
 
 ### Phase 5: Console evidence presentation
 
-- **Status:** in progress
+- **Status:** complete
 - Intended user journey: an evaluator can see which deterministic module produced each set of objective evidence without being interrupted by a manual CEFR-level correction prompt.
+- Evidence:
+  - Added a RED test for distinct evidence headings and a RED test for Range execution without a manual CEFR prompt.
+  - Focused console tests passed after implementation.
+  - Full suite passed: 57 tests.
+  - The console-focused test subset covers the revised flows; the historical `interactive.py` module is 55% covered overall because it includes provider setup, credential validation, and legacy correction helpers outside this change.
 
 ### Phase 1: Requirements and test design
 

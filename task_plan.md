@@ -6,7 +6,7 @@ Add a deterministic lexical Range module that turns Fluency's hiragana transcrip
 
 ## Current Phase
 
-Phase 5: Console evidence presentation
+Complete
 
 ## Phases
 
@@ -39,11 +39,11 @@ Phase 5: Console evidence presentation
 
 ### Phase 5: Console evidence presentation
 
-- [ ] Show distinct Fluency and Range processing stages in the interactive console.
-- [ ] Print separate Fluency and Range objective-evidence sections.
-- [ ] Remove the interactive human CEFR-level selection prompt.
-- [ ] Verify the revised console flow with focused and full automated tests.
-- **Status:** in progress
+- [x] Show distinct Fluency and Range processing stages in the interactive console.
+- [x] Print separate Fluency and Range objective-evidence sections.
+- [x] Remove the interactive human CEFR-level selection prompt.
+- [x] Verify the revised console flow with focused and full automated tests.
+- **Status:** complete
 
 ## Decisions Made
 

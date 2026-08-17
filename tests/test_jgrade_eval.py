@@ -829,15 +829,22 @@ class InteractiveCliTests(unittest.TestCase):
         fluency_extractor.extract.return_value = objective_data
         range_extractor = Mock()
         range_extractor.analyze.return_value = range_data
+        judge_inputs: list[dict] = []
+
+        def capture_judge_input(roleplay_input: dict):
+            judge_inputs.append(roleplay_input)
+            return judge_auto_cefr_with_mock_panel(roleplay_input)
 
         with (
             patch("jgrade_eval.interactive.prompt_judge_setup", return_value=("mock", [])),
             patch("jgrade_eval.interactive.prompt_audio_choice", return_value=Path("sample.wav")),
             patch("jgrade_eval.interactive.FluencyExtractor", return_value=fluency_extractor),
             patch.object(RangeExtractor, "default", return_value=range_extractor),
+            patch("jgrade_eval.interactive.judge_auto_cefr_with_mock_panel", side_effect=capture_judge_input),
             patch("jgrade_eval.interactive.prompt_user_cefr_level", return_value=None) as prompt_level,
         ):
-            with redirect_stdout(io.StringIO()):
+            output = io.StringIO()
+            with redirect_stdout(output):
                 run_interactive(
                     audio_dir=Path("."),
                     judge_mode="mock",
@@ -847,7 +854,10 @@ class InteractiveCliTests(unittest.TestCase):
                 )
 
         range_extractor.analyze.assert_called_once_with("わたしはすしがすきです")
+        self.assertEqual(judge_inputs[0]["range_data"], range_data)
         prompt_level.assert_not_called()
+        self.assertIn("[1/5] Fluencyモジュール", output.getvalue())
+        self.assertIn("[2/5] Rangeモジュール", output.getvalue())
 
 
 class TuningTests(unittest.TestCase):
