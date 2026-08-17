@@ -6,7 +6,7 @@ Add a deterministic lexical Range module that turns Fluency's hiragana transcrip
 
 ## Current Phase
 
-Phase 3 — API and Judge evidence integration
+Phase 4 — verification and UML
 
 ## Phases
 
@@ -28,14 +28,17 @@ Phase 3 — API and Judge evidence integration
 - [ ] Attach Range data to objective data and Judge input.
 - [ ] Update prompt contract and API tests.
 - [ ] Run focused tests and commit the green integration.
-- **Status:** in_progress
+- [x] Attach Range data to objective data and Judge input.
+- [x] Update prompt contract and API tests.
+- [x] Run focused tests and commit the green integration.
+- **Status:** complete
 
 ### Phase 4: Verification and UML
 
 - [ ] Run the full automated suite and coverage check if available.
 - [ ] Review the diff and generate a code-derived UML sequence diagram.
 - [ ] Compare the UML with the agreed target diagram.
-- **Status:** pending
+- **Status:** in_progress
 
 ## Decisions Made
 

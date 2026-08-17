@@ -2,12 +2,17 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
+import json
+from importlib.metadata import version
+from pathlib import Path
 from typing import Iterable, Mapping, Protocol
 from unicodedata import normalize
 
 
 JLPT_LEVELS = ("N5", "N4", "N3", "N2", "N1")
 _FUNCTION_POS = frozenset({"助詞", "助動詞", "補助記号", "空白"})
+_DATA_DIRECTORY = Path(__file__).with_name("data")
+_DEFAULT_VOCABULARY_PATH = _DATA_DIRECTORY / "jlpt_vocab_all.json"
 
 
 @dataclass(frozen=True)
@@ -27,6 +32,32 @@ class Tokenizer(Protocol):
     split_mode: str
 
     def tokenize(self, text: str) -> list[TokenizedWord]: ...
+
+
+class SudachiTokenizer:
+    """SudachiPy adapter with a fixed, fine-grained split mode."""
+
+    split_mode = "A"
+
+    def __init__(self) -> None:
+        from sudachipy import Dictionary, SplitMode
+
+        self._tokenizer = Dictionary(dict="core").create()
+        self._split_mode = SplitMode.A
+        self.version = f"SudachiPy {version('SudachiPy')}; SudachiDict-core {version('SudachiDict-core')}"
+
+    def tokenize(self, text: str) -> list[TokenizedWord]:
+        if not text.strip():
+            return []
+        return [
+            TokenizedWord(
+                surface=morpheme.surface(),
+                dictionary_form=morpheme.dictionary_form(),
+                reading_hiragana=_normalise_hiragana(morpheme.reading_form()),
+                part_of_speech=tuple(morpheme.part_of_speech()),
+            )
+            for morpheme in self._tokenizer.tokenize(text, self._split_mode)
+        ]
 
 
 @dataclass(frozen=True)
@@ -74,6 +105,29 @@ class JLPTVocabulary:
             )
         return cls(candidates_by_reading, version=version)
 
+    @classmethod
+    def from_json_files(
+        cls,
+        base_path: Path,
+        *,
+        override_path: Path | None = None,
+        version: str,
+    ) -> "JLPTVocabulary":
+        with base_path.open(encoding="utf-8") as file:
+            base_data = json.load(file)
+        if not isinstance(base_data, dict):
+            raise ValueError("JLPT vocabulary data must be a JSON object.")
+
+        entries = [
+            {"surface": surface, "reading": candidate["reading"], "level": candidate["level"]}
+            for surface, candidates in base_data.items()
+            if isinstance(candidates, list)
+            for candidate in candidates
+            if isinstance(candidate, dict)
+        ]
+        overrides = _load_overrides(override_path) if override_path else None
+        return cls.from_entries(entries, overrides=overrides, version=version)
+
     def lookup(self, reading_hiragana: str) -> tuple[JLPTCandidate, ...]:
         return self._candidates_by_reading.get(_normalise_hiragana(reading_hiragana), ())
 
@@ -84,6 +138,15 @@ class RangeExtractor:
     def __init__(self, tokenizer: Tokenizer, vocabulary: JLPTVocabulary) -> None:
         self._tokenizer = tokenizer
         self._vocabulary = vocabulary
+
+    @classmethod
+    def default(cls, *, override_path: Path | None = None) -> "RangeExtractor":
+        vocabulary = JLPTVocabulary.from_json_files(
+            _DEFAULT_VOCABULARY_PATH,
+            override_path=override_path,
+            version="Bluskyo/JLPT_Vocabulary@4358f932937ad0232194a36e9f4f875094910c6b",
+        )
+        return cls(SudachiTokenizer(), vocabulary)
 
     def analyze(self, raw_transcript_hiragana: str) -> dict[str, object]:
         tokens = self._tokenizer.tokenize(raw_transcript_hiragana)
@@ -181,3 +244,11 @@ def _normalise_hiragana(value: str) -> str:
         chr(ord(character) - 0x60) if "ァ" <= character <= "ヶ" else character
         for character in normalised
     )
+
+
+def _load_overrides(path: Path) -> Mapping[str, Iterable[Mapping[str, object]]]:
+    with path.open(encoding="utf-8") as file:
+        overrides = json.load(file)
+    if not isinstance(overrides, dict):
+        raise ValueError("Range vocabulary overrides must be a JSON object keyed by reading.")
+    return overrides

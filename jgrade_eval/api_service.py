@@ -15,6 +15,7 @@ from .live_judges import (
 )
 from .mock_judges import judge_auto_cefr_with_mock_panel
 from .models import AutoLevelJudgeResult, Rating
+from .range import RangeExtractor
 from .tuning_profile import TuningProfile, compose_auto_cefr_system_prompt
 
 
@@ -40,6 +41,7 @@ def evaluate_speech_level(
     include_objective_data: bool = True,
     profile: TuningProfile | None = None,
     extractor: FluencyExtractor | None = None,
+    range_extractor: RangeExtractor | None = None,
 ) -> dict[str, Any]:
     """Evaluate one speech file and return an API-shaped completed result."""
 
@@ -53,6 +55,10 @@ def evaluate_speech_level(
     evaluation_id = f"eval_{uuid4().hex[:12]}"
     created_at = _now_iso()
     objective_data = (extractor or FluencyExtractor()).extract(audio_path)
+    range_data = (range_extractor or RangeExtractor.default()).analyze(
+        str(objective_data["raw_transcript_hiragana"])
+    )
+    objective_data["range_data"] = range_data
     sample_id = external_id or evaluation_id
     roleplay_input = {
         "sample_id": sample_id,
@@ -62,6 +68,7 @@ def evaluate_speech_level(
         "jfs_can_do_criteria": jfs_can_do_criteria or [],
         "raw_transcript_hiragana": objective_data["raw_transcript_hiragana"],
         "fluency_metrics": objective_data["fluency_metrics"],
+        "range_data": range_data,
         "speaker_metadata": speaker_metadata or {},
         "optional_expected_information": [],
     }
