@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT_DIR" || exit 1
 
 export PYTHONIOENCODING=utf-8
+PYTHON_BIN="${JGRADE_PYTHON_BIN:-.venv/bin/python}"
 
 clear
 echo "J-GRADE Speech Level Console"
@@ -21,8 +22,8 @@ print_sync_instructions() {
   echo "  uv sync --frozen"
 }
 
-if [[ ! -x ".venv/bin/python" ]]; then
-  echo "[エラー] .venv/bin/python が見つかりません。"
+if [[ ! -x "$PYTHON_BIN" ]]; then
+  echo "[エラー] 起動用Pythonが見つかりません: ${PYTHON_BIN}"
   echo
   print_sync_instructions
   echo
@@ -33,7 +34,7 @@ if [[ ! -x ".venv/bin/python" ]]; then
   exit 1
 fi
 
-if ! ".venv/bin/python" -c "import sudachipy, sudachidict_core" >/dev/null 2>&1; then
+if ! "$PYTHON_BIN" -c "from jgrade_eval.range import RangeExtractor; RangeExtractor.default()" >/dev/null 2>&1; then
   echo "[エラー] Rangeモジュールに必要なSudachiPy辞書が .venv にありません。"
   echo "Range処理の前に依存関係を同期してください。"
   echo
@@ -70,7 +71,7 @@ echo "注: 初期設定はAPIキーなしで試せる mock です。実LLM判定
 echo "    一時的に上書きする場合は JGRADE_JUDGE_MODE=live ./run_jgrade_console.command でも起動できます。"
 echo
 
-".venv/bin/python" -m jgrade_eval "${ARGS[@]}"
+"$PYTHON_BIN" -m jgrade_eval "${ARGS[@]}"
 STATUS=$?
 
 echo

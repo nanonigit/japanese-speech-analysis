@@ -14,7 +14,7 @@ class ConsoleLauncherTests(unittest.TestCase):
 
         self.assertIn("Fluency客観データ", contents)
         self.assertIn("Range客観データ", contents)
-        self.assertIn("import sudachipy, sudachidict_core", contents)
+        self.assertIn("from jgrade_eval.range import RangeExtractor; RangeExtractor.default()", contents)
         self.assertIn("uv sync --frozen", contents)
 
     def test_launcher_has_valid_zsh_syntax(self) -> None:

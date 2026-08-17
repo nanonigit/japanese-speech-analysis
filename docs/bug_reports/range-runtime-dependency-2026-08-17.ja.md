@@ -44,5 +44,6 @@
 
 - `pyproject.toml` から `uv.lock` を再生成し、`.venv` を同期する。
 - デフォルト `RangeExtractor` の回帰テストを追加する。
+- コンソールランチャーが音声処理の前に `RangeExtractor.default()` を初期化し、失敗時は `uv sync --frozen` を案内して終了するようにする。
 - ターミナル起動前に `.venv/bin/python` で Range・コンソールテストを実行する。
 - この記録とテストコマンドをリリースチェックリストに残す。

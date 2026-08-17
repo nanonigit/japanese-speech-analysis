@@ -44,5 +44,6 @@ Minimal launcher-environment reproducer:
 
 - Regenerate `uv.lock` from `pyproject.toml` and synchronize `.venv`.
 - Add a default `RangeExtractor` regression test.
+- Make the console launcher initialize `RangeExtractor.default()` before audio processing; if it fails, exit with `uv sync --frozen` recovery instructions.
 - Run the Range and console tests with `.venv/bin/python` before opening the terminal console.
 - Retain this incident record and test command in the release checklist.

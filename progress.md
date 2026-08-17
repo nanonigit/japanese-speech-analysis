@@ -25,8 +25,9 @@
 
 - **Status:** complete
 - The launcher now describes Fluency and Range objective evidence before asking for input.
-- It probes the Range dependencies in `.venv` and exits before audio processing with `uv sync --frozen` recovery instructions if they are missing.
-- Launcher contract tests, the default Range extractor test, and the full suite pass under `.venv/bin/python` (60 tests).
+- It initializes the default Range extractor in `.venv` and exits before audio processing with `uv sync --frozen` recovery instructions if it cannot do so.
+- A dynamic launcher test simulates the missing dependency and proves that it exits before prompting for an audio file.
+- Launcher contract tests, the default Range extractor test, and the full suite pass under `.venv/bin/python` (61 tests).
 
 ### Phase 1: Requirements and test design
 
