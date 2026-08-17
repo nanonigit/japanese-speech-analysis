@@ -6,7 +6,7 @@ Add a deterministic lexical Range module that turns Fluency's hiragana transcrip
 
 ## Current Phase
 
-Phase 4 — verification and UML
+Complete
 
 ## Phases
 
@@ -25,9 +25,6 @@ Phase 4 — verification and UML
 
 ### Phase 3: API and Judge evidence integration
 
-- [ ] Attach Range data to objective data and Judge input.
-- [ ] Update prompt contract and API tests.
-- [ ] Run focused tests and commit the green integration.
 - [x] Attach Range data to objective data and Judge input.
 - [x] Update prompt contract and API tests.
 - [x] Run focused tests and commit the green integration.
@@ -35,10 +32,10 @@ Phase 4 — verification and UML
 
 ### Phase 4: Verification and UML
 
-- [ ] Run the full automated suite and coverage check if available.
-- [ ] Review the diff and generate a code-derived UML sequence diagram.
-- [ ] Compare the UML with the agreed target diagram.
-- **Status:** in_progress
+- [x] Run the full automated suite and coverage check.
+- [x] Review the diff and generate a code-derived UML sequence diagram.
+- [x] Compare the UML with the agreed target diagram.
+- **Status:** complete
 
 ## Decisions Made
 
@@ -54,3 +51,4 @@ Phase 4 — verification and UML
 | Error | Attempt | Resolution |
 |---|---:|---|
 | `uv` command not found | 1 | Use the repository virtual environment directly; this is not a valid RED result. |
+| `coverage` module not found | 1 | Install the test-only coverage tool, then run the full suite under coverage. |

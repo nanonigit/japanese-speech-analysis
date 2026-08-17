@@ -4,7 +4,7 @@
 
 ### Phase 1: Requirements and test design
 
-- **Status:** in_progress
+- **Status:** complete
 - Actions taken:
   - Inspected the Fluency-to-API-to-Judge flow and existing API tests.
   - Confirmed that no implementation changes existed before this task.
@@ -19,11 +19,13 @@
 
 | Test | Expected | Actual | Status |
 |---|---|---|---|
-| Range tests | Not written yet | Not run | pending |
 | Range core unit tests | `python3 -m unittest tests.test_range -v` | 5 passing tests | 5 passing tests | pass |
 | Range API integration RED | `python3 -m unittest tests.test_jgrade_api.JGradeApiTests.test_service_exposes_range_data_to_response_and_judges -v` | Missing Range injection | `TypeError: unexpected keyword argument 'range_extractor'` | expected RED |
 | Range + API focused suite | `python3 -m unittest tests.test_range tests.test_jgrade_api -v` | 9 passing tests | 9 passing tests | pass |
 | Bundled production Range | `RangeExtractor.default().analyze("わたしはすしがすきです")` | Fixed Sudachi and bundled dictionary load offline | Tokenisation and metadata returned | pass |
+| Full suite | `python3 -m unittest discover -s tests -v` | All tests pass | 55 tests passed | pass |
+| Coverage | `python3 -m coverage run ...` | Coverage report | Module unavailable; install tool before retrying | pending |
+| Range/API coverage | `coverage --source=jgrade_eval.range,jgrade_eval.api_service` | At least 80% for changed modules | 89% total; Range 93%, API service 84% | pass |
 
 Attempted `uv run python -m unittest tests.test_range -v`; the shell reported `uv: command not found`. The command did not execute the test target, so it is not treated as the required RED gate.
 
@@ -32,3 +34,4 @@ Attempted `uv run python -m unittest tests.test_range -v`; the shell reported `u
 | Error | Attempt | Resolution |
 |---|---:|---|
 | `uv: command not found` | 1 | Switched to inspecting and using the existing project virtual environment. |
+| `No module named coverage` | 1 | Install `coverage` before the next, changed approach. |
