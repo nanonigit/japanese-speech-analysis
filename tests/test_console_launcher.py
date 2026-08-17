@@ -28,6 +28,15 @@ class ConsoleLauncherTests(unittest.TestCase):
         self.assertIn(first_run_notice, readme)
         self.assertIn(first_run_notice, launcher)
 
+    def test_console_documentation_defers_cefr_correction_to_the_tuning_ui(self) -> None:
+        readme = Path("README.md").read_text(encoding="utf-8")
+        collaborator_guide = Path("docs/collaborator_testing.md").read_text(encoding="utf-8")
+
+        self.assertIn("コンソールではCEFR補正を行いません", readme)
+        self.assertIn("コンソールではCEFR補正を行いません", collaborator_guide)
+        self.assertNotIn("最終結果の後に `=== ユーザーレベル確認 ===` が表示されます", readme)
+        self.assertNotIn("最終結果の後に `=== ユーザーレベル確認 ===` が表示されます", collaborator_guide)
+
     def test_launcher_has_valid_zsh_syntax(self) -> None:
         result = subprocess.run(
             ["zsh", "-n", "run_jgrade_console.command"],
