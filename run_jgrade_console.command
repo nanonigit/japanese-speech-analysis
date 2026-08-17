@@ -10,14 +10,34 @@ clear
 echo "J-GRADE Speech Level Console"
 echo "============================"
 echo
-echo "音声ファイルを選ぶと、ひらがなTranscript、流暢性指標、CEFR推定をこの画面に表示します。"
+echo "音声ファイルを選ぶと、5軸評価の根拠となる客観データをこの画面に表示します。"
+echo "  - Fluency客観データ: ひらがなTranscript、発話時間、ポーズ、モーラ、流暢性指標"
+echo "  - Range客観データ: 単語分割、語彙TTR、未知語、JLPT語彙分布、同音異義語候補"
+echo "AI JudgeによるCEFR推定は、その後に参考情報として表示します。"
 echo
+
+print_sync_instructions() {
+  echo "先に以下を実行してください:"
+  echo "  uv sync --frozen"
+}
 
 if [[ ! -x ".venv/bin/python" ]]; then
   echo "[エラー] .venv/bin/python が見つかりません。"
   echo
-  echo "先に以下を実行してください:"
-  echo "  uv sync --frozen"
+  print_sync_instructions
+  echo
+  if [[ -t 0 ]]; then
+    printf "Enterキーで閉じます..."
+    read -r _
+  fi
+  exit 1
+fi
+
+if ! ".venv/bin/python" -c "import sudachipy, sudachidict_core" >/dev/null 2>&1; then
+  echo "[エラー] Rangeモジュールに必要なSudachiPy辞書が .venv にありません。"
+  echo "Range処理の前に依存関係を同期してください。"
+  echo
+  print_sync_instructions
   echo
   if [[ -t 0 ]]; then
     printf "Enterキーで閉じます..."

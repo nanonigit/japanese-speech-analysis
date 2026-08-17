@@ -21,6 +21,13 @@
 - The default Range extractor regression test and the full suite are green under `.venv/bin/python` (58 tests).
 - An end-to-end console smoke run used mock Judges and a sample audio file. It completed and saved a temporary record containing `range_data` generated with `SudachiPy 0.6.10`, `SudachiDict-core 20251022`, split mode `A`, and 148 tokens.
 
+### Phase 7: Launcher preflight and evidence-oriented copy
+
+- **Status:** complete
+- The launcher now describes Fluency and Range objective evidence before asking for input.
+- It probes the Range dependencies in `.venv` and exits before audio processing with `uv sync --frozen` recovery instructions if they are missing.
+- Launcher contract tests, the default Range extractor test, and the full suite pass under `.venv/bin/python` (60 tests).
+
 ### Phase 1: Requirements and test design
 
 - **Status:** complete
