@@ -15,6 +15,7 @@ echo "音声ファイルを選ぶと、5軸評価の根拠となる客観デー�
 echo "  - Fluency客観データ: ひらがなTranscript、発話時間、ポーズ、モーラ、流暢性指標"
 echo "  - Range客観データ: 単語分割、語彙TTR、未知語、JLPT語彙分布、同音異義語候補"
 echo "AI JudgeによるCEFR推定は、その後に参考情報として表示します。"
+echo "初回のみ、uvによる依存関係導入と音声認識モデルの取得には、ネットワーク接続と時間が必要です。"
 echo
 
 print_sync_instructions() {
