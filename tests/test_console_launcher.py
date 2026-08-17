@@ -17,6 +17,17 @@ class ConsoleLauncherTests(unittest.TestCase):
         self.assertIn("from jgrade_eval.range import RangeExtractor; RangeExtractor.default()", contents)
         self.assertIn("uv sync --frozen", contents)
 
+    def test_readme_and_launcher_explain_first_run_network_requirements(self) -> None:
+        first_run_notice = (
+            "初回のみ、uvによる依存関係導入と音声認識モデルの取得には、"
+            "ネットワーク接続と時間が必要です。"
+        )
+        readme = Path("README.md").read_text(encoding="utf-8")
+        launcher = Path("run_jgrade_console.command").read_text(encoding="utf-8")
+
+        self.assertIn(first_run_notice, readme)
+        self.assertIn(first_run_notice, launcher)
+
     def test_launcher_has_valid_zsh_syntax(self) -> None:
         result = subprocess.run(
             ["zsh", "-n", "run_jgrade_console.command"],
