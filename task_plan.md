@@ -6,7 +6,7 @@ Add a deterministic lexical Range module that turns Fluency's hiragana transcrip
 
 ## Current Phase
 
-Complete
+Phase 7: Launcher preflight and evidence-oriented copy
 
 ## Phases
 
@@ -52,6 +52,14 @@ Complete
 - [x] Synchronize the locked dependencies and `.venv` with the Range requirements.
 - [x] Verify the console smoke path without a live Judge.
 - **Status:** complete
+
+### Phase 7: Launcher preflight and evidence-oriented copy
+
+- [x] Review the runtime repair for stale-environment recurrence.
+- [ ] Add a preflight check that fails before Range with an exact repair command.
+- [ ] Update launcher copy to describe Fluency and Range objective evidence.
+- [ ] Verify the launcher script and its preflight contract.
+- **Status:** in progress
 
 ## Decisions Made
 

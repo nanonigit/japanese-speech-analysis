@@ -28,6 +28,7 @@
 - **Immediate cause:** the launcher always uses `.venv/bin/python`, but that environment lacks both `SudachiPy` and `SudachiDict-core`.
 - **Root cause:** the Range dependency was added to `pyproject.toml` without synchronizing `uv.lock` and the already-created `.venv`; prior tests ran with the system Python rather than the launcher interpreter.
 - **Repair contract:** add a default-extractor test and execute it with `.venv/bin/python`; regenerate the lock and synchronize `.venv` before console smoke testing.
+- **Review follow-up:** `uv.lock` does not repair an already-created stale `.venv`. The launcher must probe the Range imports before starting the console and give the exact `uv sync --frozen` recovery command instead of allowing a later traceback.
 
 ## Dictionary research
 
