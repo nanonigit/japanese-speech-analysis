@@ -5,19 +5,41 @@ ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT_DIR" || exit 1
 
 export PYTHONIOENCODING=utf-8
+PYTHON_BIN="${JGRADE_PYTHON_BIN:-.venv/bin/python}"
 
 clear
 echo "J-GRADE Speech Level Console"
 echo "============================"
 echo
-echo "音声ファイルを選ぶと、ひらがなTranscript、流暢性指標、CEFR推定をこの画面に表示します。"
+echo "音声ファイルを選ぶと、5軸評価の根拠となる客観データをこの画面に表示します。"
+echo "  - Fluency客観データ: ひらがなTranscript、発話時間、ポーズ、モーラ、流暢性指標"
+echo "  - Range客観データ: 単語分割、語彙TTR、未知語、JLPT語彙分布、同音異義語候補"
+echo "AI JudgeによるCEFR推定は、その後に参考情報として表示します。"
+echo "初回のみ、uvによる依存関係導入と音声認識モデルの取得には、ネットワーク接続と時間が必要です。"
 echo
 
-if [[ ! -x ".venv/bin/python" ]]; then
-  echo "[エラー] .venv/bin/python が見つかりません。"
-  echo
+print_sync_instructions() {
   echo "先に以下を実行してください:"
   echo "  uv sync --frozen"
+}
+
+if [[ ! -x "$PYTHON_BIN" ]]; then
+  echo "[エラー] 起動用Pythonが見つかりません: ${PYTHON_BIN}"
+  echo
+  print_sync_instructions
+  echo
+  if [[ -t 0 ]]; then
+    printf "Enterキーで閉じます..."
+    read -r _
+  fi
+  exit 1
+fi
+
+if ! "$PYTHON_BIN" -c "from jgrade_eval.range import RangeExtractor; RangeExtractor.default()" >/dev/null 2>&1; then
+  echo "[エラー] Rangeモジュールに必要なSudachiPy辞書が .venv にありません。"
+  echo "Range処理の前に依存関係を同期してください。"
+  echo
+  print_sync_instructions
   echo
   if [[ -t 0 ]]; then
     printf "Enterキーで閉じます..."
@@ -50,7 +72,7 @@ echo "注: 初期設定はAPIキーなしで試せる mock です。実LLM判定
 echo "    一時的に上書きする場合は JGRADE_JUDGE_MODE=live ./run_jgrade_console.command でも起動できます。"
 echo
 
-".venv/bin/python" -m jgrade_eval "${ARGS[@]}"
+"$PYTHON_BIN" -m jgrade_eval "${ARGS[@]}"
 STATUS=$?
 
 echo

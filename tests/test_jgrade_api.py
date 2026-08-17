@@ -5,6 +5,8 @@ from unittest.mock import patch
 from starlette.testclient import TestClient
 
 from jgrade_eval.api import EVALUATIONS, app
+from jgrade_eval.api_service import evaluate_speech_level
+from jgrade_eval.mock_judges import judge_auto_cefr_with_mock_panel
 
 
 class FakeExtractor:
@@ -40,7 +42,46 @@ class FakeDownloadResponse:
         return None
 
 
+class FakeRangeExtractor:
+    def __init__(self) -> None:
+        self.transcripts: list[str] = []
+
+    def analyze(self, transcript: str) -> dict:
+        self.transcripts.append(transcript)
+        return {
+            "tokens": [],
+            "statistics": {"token_count": 7, "ttr": 0.5},
+            "jlpt_distribution": {},
+            "ambiguity_count": 0,
+            "dictionary_version": "fake-range-dictionary",
+            "tokenizer_version": "fake-tokenizer",
+            "split_mode": "A",
+        }
+
+
 class JGradeApiTests(unittest.TestCase):
+    def test_service_exposes_range_data_to_response_and_judges(self) -> None:
+        range_extractor = FakeRangeExtractor()
+        judge_inputs: list[dict] = []
+
+        def capture_judge_input(roleplay_input: dict):
+            judge_inputs.append(roleplay_input)
+            return judge_auto_cefr_with_mock_panel(roleplay_input)
+
+        with patch("jgrade_eval.api_service.judge_auto_cefr_with_mock_panel", side_effect=capture_judge_input):
+            result = evaluate_speech_level(
+                Path("sample.mp3"),
+                judge_mode="mock",
+                extractor=FakeExtractor(),
+                range_extractor=range_extractor,
+            )
+
+        self.assertEqual(range_extractor.transcripts, [
+            "わたしはきのうともだちとえきにいきました" * 14
+        ])
+        self.assertEqual(result["objective_data"]["range_data"]["dictionary_version"], "fake-range-dictionary")
+        self.assertEqual(judge_inputs[0]["range_data"], result["objective_data"]["range_data"])
+
     def test_create_speech_level_evaluation_returns_completed_result(self) -> None:
         EVALUATIONS.clear()
         client = TestClient(app)

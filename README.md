@@ -16,7 +16,7 @@
 3. Systemが、話していた時間、話す速さ、ポーズなどを測る。
 4. 1〜3つのAIが、文字起こしと測定値をそれぞれ評価する。
 5. 複数AIの結果をまとめ、最終レベル、課題達成度、判定理由を表示する。
-6. 必要に応じて人が正しいレベルへ修正し、その修正を次回以降の判定材料として保存する。
+6. 必要に応じて、Streamlitのチューニング画面で人が正しいレベルへ修正し、その修正を次回以降の判定材料として保存する。
 
 実装済みの主な機能は以下です。
 
@@ -185,12 +185,9 @@ Systemは、次の情報を1つにまとめ、選択したすべてのJudgeへ�
 
 ### 9. 人が結果を確認・修正する
 
-Consoleの最後、またはStreamlitのチューニング画面で、人が正しいレベルを選べます。
-AIの結果と異なる場合は、修正前レベル、修正後レベル、客観データを
-`tuning_profiles/base.json`などへ保存し、次回以降の評価材料にします。
+コンソールではCEFR補正を行いません。現段階では Fluency・Range を含む客観データの精度を確認するため、コンソールは客観データとAI Judgeの参考推定を表示します。
 
-現在画面から直接修正できるのはCEFRレベルです。AIへの指示文や自由な採点ルールを
-画面から直接編集する機能ではありません。変更履歴は直近10件まで保存され、過去状態へ戻せます。
+人が正しいCEFRレベルを修正する必要がある場合は、Streamlitのチューニング画面を使います。AIの結果と異なる場合は、修正前レベル、修正後レベル、客観データを `tuning_profiles/base.json` などへ保存し、次回以降の評価材料にします。現在画面から直接修正できるのはCEFRレベルであり、AIへの指示文や自由な採点ルールを画面から直接編集する機能ではありません。
 
 ## テストで確認していること
 
@@ -246,6 +243,8 @@ git submodule update --init --recursive
 ```
 
 ### 2. Python環境の構築
+
+> 初回のみ、uvによる依存関係導入と音声認識モデルの取得には、ネットワーク接続と時間が必要です。
 
 ```bash
 uv python install 3.11
@@ -340,6 +339,8 @@ STT/流暢さ分析の後段として、Raw Transcriptと流暢さ指標を受�
 
 GitHubから試す人は、環境構築後に `run_jgrade_console.command` を起動してください。macOSではFinderでダブルクリックするとTerminalが開き、音声ファイル選択から結果表示まで同じコンソール画面で進みます。
 
+> 初回のみ、uvによる依存関係導入と音声認識モデルの取得には、ネットワーク接続と時間が必要です。
+
 Judge LLMの選択は `config/judge_llms.json` で管理します。協力者はコードを編集せず、この設定ファイルの `judge_mode` と `live_judges` だけを変更してください。APIキーは `.env.example` を `.env` にコピーして、使うプロバイダのキーだけを入れます。
 
 ```bash
@@ -362,7 +363,7 @@ JGRADE_JUDGE_PROVIDERS=anthropic:claude-sonnet-4-6,openai:gpt-5.4-mini,gemini:ge
 
 Judge設定の後に、ファイル選択ダイアログ、パス入力、または `audio/` 内のサンプル音声から音声を選べます。出口はコンソール末尾の `=== 最終結果 ===` です。ここに `CEFRレベル`、`タスク達成度`、`信頼度`、`人間確認`、判定理由、協議理由、ひらがなTranscript量、流暢性指標、3 Judge要約、補正材料が表示されます。
 
-最終結果の後に `=== ユーザーレベル確認 ===` が表示されます。協力者はこのファイルの正しいCEFRレベルを選ぶか、`スキップ` できます。ユーザー選択レベルがSystemJudgeの判定と異なる場合は、`tuning_profiles/base.json` などのチューニングプロファイルに `tuning_examples` と補正統計を自動保存し、修正内容をコンソールに表示します。同じ音声IDを強制上書きするのではなく、次回以降は保存されたTranscript・流暢性指標・補正遷移を協議時の判断材料として使います。
+現行コンソールでは、最終結果の後に正しいCEFRレベルを選ばせる画面は表示しません。まず Fluency・Range を含む客観データの精度を高める段階であり、教師によるCEFR補正はチューニング画面など後続のフローで扱います。
 
 協力者に送る詳しい手順と報告テンプレートは `docs/collaborator_testing.md` にあります。
 
@@ -455,6 +456,8 @@ uv run python -m unittest discover -s tests
 対話式CLIでは一部のJudge APIが失敗しても、少なくとも1つのJudgeが成功していれば、その成功分だけでCEFR集約を続行し、失敗したJudgeは警告として表示します。
 
 HTTP APIは `POST /api/v1/speech-level-evaluations` で音声ファイルまたは `audio_url` を受け取り、`final_cefr_level`、`summary`、`reasons`、`objective_data`、`judge_results`、`needs_human_review` を返します。現在のローカルAPIは1リクエスト内で処理を完了して返すMVPです。将来の外部System統合では、同じレスポンス形を保ったまま非同期ジョブ化する想定です。
+
+`objective_data` には、Fluency のひらがな文字起こし・タイミング指標に加え、非LLMの語彙Range根拠 `range_data` が入ります。Range は SudachiPy の固定分割モードAと同梱JLPT語彙スナップショットを使って、トークン、TTR、JLPT分布、未知語、同音異義語候補を記録します。JLPT分布だけで最終CEFRを決定するものではありません。辞書の出典と上書き仕様は [`docs/range-module-design.md`](docs/range-module-design.md) を参照してください。
 
 自分で用意した複数音声をmanifestで試す場合は、`examples/jgrade_audio_manifest.json` と同じ形式で、候補者・試験レベル・ロールプレイごとの `audio_path`、タスク、JFS can-do基準、期待される情報を指定できます。`extract-objective` はこのリポジトリの `fluency.py` を使い、ひらがな文字起こし、発話率、ポーズ、モーラ速度、発話区間を出力します。`judge-mode mock` はAPIキーなしの疎通確認用で、正式なJFS判定ではありません。
 

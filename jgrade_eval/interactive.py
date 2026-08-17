@@ -3,7 +3,6 @@ from __future__ import annotations
 import shlex
 import subprocess
 import os
-from dataclasses import replace
 from getpass import getpass
 from pathlib import Path
 
@@ -19,6 +18,7 @@ from .live_judges import (
     validate_provider_key,
 )
 from .mock_judges import judge_auto_cefr_with_mock_panel
+from .range import RangeExtractor
 from .models import (
     CEFR_LEVELS,
     AutoLevelDecision,
@@ -55,7 +55,7 @@ def run_interactive(
     judge_mode, provider_specs = prompt_judge_setup(judge_mode, provider_specs or [])
     audio_path = prompt_audio_choice(list_audio_files(audio_dir))
 
-    print("\n[1/4] 客観データを抽出中...")
+    print("\n[1/5] Fluencyモジュール: 音声からひらがな・流暢性指標を抽出中...")
     try:
         extractor = FluencyExtractor()
         objective_data = extractor.extract(audio_path)
@@ -63,6 +63,17 @@ def run_interactive(
         print("\n[エラー] 客観データ抽出に失敗しました。")
         print(str(exc))
         raise SystemExit(2) from exc
+
+    print("\n[2/5] Rangeモジュール: 単語分割・辞書照合・語彙統計を計算中...")
+    try:
+        range_data = RangeExtractor.default().analyze(
+            str(objective_data["raw_transcript_hiragana"])
+        )
+    except Exception as exc:
+        print("\n[エラー] Range客観データの抽出に失敗しました。")
+        print(str(exc))
+        raise SystemExit(2) from exc
+    objective_data = {**objective_data, "range_data": range_data}
     print_objective_data(objective_data)
     profile = load_profile(profile_path) if profile_path else None
     review_sample_id = make_review_sample_id(audio_path, objective_data)
@@ -80,12 +91,13 @@ def run_interactive(
         "jfs_can_do_criteria": [],
         "raw_transcript_hiragana": objective_data["raw_transcript_hiragana"],
         "fluency_metrics": objective_data["fluency_metrics"],
+        "range_data": objective_data["range_data"],
         "speaker_metadata": {},
         "optional_expected_information": [],
     }
 
     judge_count = len(provider_specs) if judge_mode == "live" and provider_specs else 3
-    print(f"\n[2/4] {judge_count} JudgeでCEFRレベルを自動推定中...")
+    print(f"\n[3/5] {judge_count} JudgeでCEFRレベルを自動推定中...")
     if judge_mode == "mock":
         auto_results = judge_auto_cefr_with_mock_panel(roleplay_input)
         judge_failures = []
@@ -115,7 +127,7 @@ def run_interactive(
 
     print_auto_level_judge_results(auto_results)
 
-    print("\n[3/4] CEFR協議を計算中...")
+    print("\n[4/5] CEFR協議を計算中...")
     deliberation = deliberate_auto_cefr(
         auto_results,
         objective_data=objective_data,
@@ -143,63 +155,11 @@ def run_interactive(
         calibration_applied=deliberation.applied_calibration,
         deliberation=deliberation,
     )
-    user_level = prompt_user_cefr_level(decision.final_cefr_level)
-    if user_level:
-        record["human_cefr"] = user_level
-        record["human_feedback_source"] = "console_final_prompt"
-        if user_level == decision.final_cefr_level:
-            print("\n=== ユーザー補正 ===")
-            print(f"ユーザー選択: {user_level}")
-            print("SystemJudgeの判定と一致したため、判定過程の修正は行いません。")
-        else:
-            previous_level = decision.final_cefr_level
-            correction_record = {
-                **record,
-                "predicted_cefr": previous_level,
-                "raw_predicted_cefr": previous_level,
-            }
-            profile = apply_and_save_user_level_correction(
-                profile=profile or TuningProfile.default(),
-                profile_path=profile_path,
-                record=correction_record,
-                corrected_level=user_level,
-            )
-            decision = replace(
-                decision,
-                final_cefr_level=user_level,
-                needs_human_review=True,
-            )
-            record = {
-                **record,
-                "predicted_cefr": user_level,
-                "user_corrected_cefr": user_level,
-                "system_predicted_cefr_before_feedback": previous_level,
-                "calibration_applied": True,
-                "human_feedback_applied": True,
-                "needs_human_review": True,
-            }
-            print_user_level_correction_summary(
-                sample_id=review_sample_id,
-                previous_level=previous_level,
-                corrected_level=user_level,
-                profile_path=profile_path,
-                profile=profile,
-            )
-            print_console_final_result(
-                objective_data=objective_data,
-                decision=decision,
-                judge_results=auto_results,
-                deliberation=deliberation,
-                title="修正後の最終結果",
-            )
-    else:
-        print("\nユーザーレベル選択はスキップされました。")
-
     if review_store_path:
         append_judged_sample(review_store_path, record=record, source="interactive")
         print(f"判定履歴を保存しました: {review_store_path}")
 
-    print("\n[4/4] 完了")
+    print("\n[5/5] 完了")
     print("注: これは選択した1音声に対するCEFR推定です。")
     print("公開・本番利用前には、人間教師ラベルとのベンチマークで精度検証してください。")
 
@@ -611,7 +571,8 @@ def _upsert_env_value(path: Path, key: str, value: str) -> None:
 def print_objective_data(objective_data: dict) -> None:
     metrics = objective_data["fluency_metrics"]
     transcript = objective_data["raw_transcript_hiragana"]
-    print("\n=== 客観データ ===")
+    print("\n=== Fluency客観データ ===")
+    print("生成元: Fluencyモジュール")
     print(f"audio: {objective_data['audio_path']}")
     print(f"STT: {objective_data['stt_model']}")
     print(f"VAD: {objective_data['vad_model']}")
@@ -625,6 +586,41 @@ def print_objective_data(objective_data: dict) -> None:
         print("長いポーズ:")
         for pause in objective_data["top_pauses"]:
             print(f"  {pause['start']}〜{pause['end']}秒 ({pause['duration']}秒)")
+
+    range_data = objective_data.get("range_data")
+    if not isinstance(range_data, dict):
+        return
+
+    statistics = range_data.get("statistics", {})
+    distribution = range_data.get("jlpt_distribution", {})
+    print("\n=== Range客観データ ===")
+    print("生成元: Rangeモジュール（SudachiPy + ローカルJLPT辞書、LLM不使用）")
+    print(
+        "Tokenizer: "
+        f"{range_data.get('tokenizer_version', 'unknown')} "
+        f"/ split_mode={range_data.get('split_mode', 'unknown')}"
+    )
+    print(f"辞書: {range_data.get('dictionary_version', 'unknown')}")
+    print(
+        "トークン: "
+        f"全{statistics.get('token_count', 0)} / 語彙{statistics.get('lexical_token_count', 0)} "
+        f"/ ユニーク見出し語{statistics.get('unique_lemma_count', 0)}"
+    )
+    print(f"語彙TTR: {statistics.get('ttr', 0.0)}")
+    print(
+        "辞書照合: "
+        f"既知{statistics.get('known_token_count', 0)} / "
+        f"未知{statistics.get('unknown_token_count', 0)} "
+        f"(未知率 {statistics.get('unknown_token_rate', 0.0)})"
+    )
+    print(f"同音異義語候補あり: {range_data.get('ambiguity_count', 0)}語")
+    print("JLPT語彙分布:")
+    for level in ("N5", "N4", "N3", "N2", "N1"):
+        level_counts = distribution.get(level, {}) if isinstance(distribution, dict) else {}
+        print(
+            f"  JLPT {level}: token={level_counts.get('token_count', 0)} "
+            f"/ unique_lemma={level_counts.get('unique_lemma_count', 0)}"
+        )
 
 
 def print_judge_results(judge_results: list[JudgeResult]) -> None:
