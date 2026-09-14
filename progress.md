@@ -13,3 +13,4 @@
 - RED confirmed: `tests.test_accuracy` fails only because `jgrade_eval.accuracy` does not exist; seven existing Evidence/Range/Fluency tests pass. Added bilingual Bug Hunter report and will create the RED checkpoint before production code.
 - Added API module-selection contract tests before implementation; next is a second focused RED run covering the service boundary.
 - Accuracy unit and service-selection contracts are GREEN (14 focused tests). Added HTTP module-selection coverage before exposing the option through the request parser.
+- Added a RED test for the Judge prompt boundary: Accuracy observations must not be reinterpreted as correctness before the Judge evaluates them.
