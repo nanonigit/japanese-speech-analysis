@@ -11,3 +11,4 @@
 - Replaced the current architecture flowchart with a Mermaid UML sequence diagram whose top participants are filenames/functions and whose vertical lifelines can be traced left/right.
 - Started TDD implementation. Added Accuracy and Fluency compatibility regression tests before production changes; next is the RED run and checkpoint.
 - RED confirmed: `tests.test_accuracy` fails only because `jgrade_eval.accuracy` does not exist; seven existing Evidence/Range/Fluency tests pass. Added bilingual Bug Hunter report and will create the RED checkpoint before production code.
+- Added API module-selection contract tests before implementation; next is a second focused RED run covering the service boundary.

@@ -84,6 +84,37 @@ class JGradeApiTests(unittest.TestCase):
         self.assertNotIn("fluency_grade", result["objective_data"]["fluency_metrics"])
         self.assertEqual(result["objective_data"]["evidence_schema_version"], "evidence.v1")
 
+    def test_service_can_select_accuracy_without_running_range(self) -> None:
+        range_extractor = FakeRangeExtractor()
+        judge_inputs: list[dict] = []
+
+        def capture_judge_input(roleplay_input: dict):
+            judge_inputs.append(roleplay_input)
+            return judge_auto_cefr_with_mock_panel(roleplay_input)
+
+        with patch("jgrade_eval.api_service.judge_auto_cefr_with_mock_panel", side_effect=capture_judge_input):
+            result = evaluate_speech_level(
+                Path("sample.mp3"),
+                judge_mode="mock",
+                extractor=FakeExtractor(),
+                range_extractor=range_extractor,
+                selected_modules=("accuracy",),
+            )
+
+        self.assertEqual(range_extractor.transcripts, [])
+        self.assertIn("accuracy_data", result["objective_data"])
+        self.assertNotIn("range_data", result["objective_data"])
+        self.assertIn("accuracy_data", judge_inputs[0])
+
+    def test_service_rejects_unknown_fact_module(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unsupported fact module"):
+            evaluate_speech_level(
+                Path("sample.mp3"),
+                judge_mode="mock",
+                extractor=FakeExtractor(),
+                selected_modules=("not-a-module",),
+            )
+
     def test_create_speech_level_evaluation_returns_completed_result(self) -> None:
         EVALUATIONS.clear()
         client = TestClient(app)
