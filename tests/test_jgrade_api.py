@@ -180,6 +180,29 @@ class JGradeApiTests(unittest.TestCase):
         self.assertEqual(data["final_cefr_level"], "B1")
         self.assertNotIn("objective_data", data)
 
+    def test_http_api_can_select_accuracy_fact_module(self) -> None:
+        EVALUATIONS.clear()
+        client = TestClient(app)
+
+        with (
+            patch("jgrade_eval.api.requests.get", return_value=FakeDownloadResponse()),
+            patch("jgrade_eval.api_service.FluencyExtractor", return_value=FakeExtractor()),
+        ):
+            response = client.post(
+                "/api/v1/speech-level-evaluations",
+                json={
+                    "audio_url": "https://example.com/sample.mp3",
+                    "judge_mode": "mock",
+                    "fact_modules": ["accuracy"],
+                },
+            )
+
+        self.assertEqual(response.status_code, 201)
+        data = response.json()["data"]
+        self.assertEqual(data["fact_modules"], ["accuracy"])
+        self.assertIn("accuracy_data", data["objective_data"])
+        self.assertNotIn("range_data", data["objective_data"])
+
 
 if __name__ == "__main__":
     unittest.main()
