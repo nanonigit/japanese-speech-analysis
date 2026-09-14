@@ -44,4 +44,6 @@ Accuracy must be added without changing the fact output contract of the already 
 - Added optional API `fact_modules`; the default remains exactly `fluency` plus `range`, so Accuracy is not run or sent to Judges unless selected.
 - Added the Judge prompt boundary: `accuracy_data` is observation data; unavailable/uncalibrated ASR information and reference differences are not learner-error instructions.
 - Verified focused tests (17), the complete suite (76), compile checks, and `git diff --check`.
+- Compared the Accuracy implementation against the preceding common-Evidence checkpoint `eeecf7c`: `jgrade_eval/audio_pipeline.py`, `jgrade_eval/range.py`, and `jgrade_eval/evidence/` have no diff. Accuracy is additive and runs only when selected.
+- Inspected the existing real-audio objective baseline at `outputs/jgrade_objective_data.json`; it records the same Wav2Vec2/Silero source pipeline. No new live model inference was needed to establish that Accuracy did not alter the pre-existing extraction code.
 - Coverage tooling is not installed in the current `uv` environment (`No module named coverage`); this is recorded rather than treated as a passing coverage measurement.

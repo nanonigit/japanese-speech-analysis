@@ -44,4 +44,6 @@
 - 任意API `fact_modules` を追加。既定は従来どおり `fluency` と `range` であり、Accuracyは選択されない限り実行もJudge送信もしない。
 - Judgeプロンプトに境界を追加。`accuracy_data` は観測値であり、未対応／未較正ASR情報や参照差分を学習者の誤り指示として扱わない。
 - 集中テスト17件、全テスト76件、コンパイル、`git diff --check` を成功確認。
+- Accuracy実装を直前の共通Evidenceチェックポイント `eeecf7c` と比較し、`jgrade_eval/audio_pipeline.py`、`jgrade_eval/range.py`、`jgrade_eval/evidence/` に差分がないことを確認。Accuracyは追加的で、選択時だけ動く。
+- 既存実音声の客観データ基準 `outputs/jgrade_objective_data.json` を確認。Wav2Vec2／Sileroの同じ抽出元を記録している。Accuracyが既存抽出コードを変更していないため、新たなライブ推論は不要だった。
 - 現在の `uv` 環境にはcoverageツールがない（`No module named coverage`）。成功したカバレッジ測定として扱わず記録する。
