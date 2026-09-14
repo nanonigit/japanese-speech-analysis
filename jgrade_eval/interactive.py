@@ -8,6 +8,8 @@ from pathlib import Path
 
 from .audio_pipeline import FluencyExtractor, ObjectiveExtractionError
 from .deliberation import AutoCefrDeliberation, deliberate_auto_cefr
+from .evidence import EvidencePipeline, FluencySpeechEvidenceExtractor, LinguisticEvidenceExtractor
+from .evidence.speech import objective_data_from_evidence
 from .live_judges import (
     PROVIDER_KEY_ENVS,
     PROVIDER_MODEL_OPTIONS,
@@ -58,7 +60,12 @@ def run_interactive(
     print("\n[1/5] Fluencyモジュール: 音声からひらがな・流暢性指標を抽出中...")
     try:
         extractor = FluencyExtractor()
-        objective_data = extractor.extract(audio_path)
+        evidence = EvidencePipeline(
+            speech_extractor=FluencySpeechEvidenceExtractor(extractor),
+            linguistic_extractor=LinguisticEvidenceExtractor(),
+        ).build(audio_path)
+        objective_data = objective_data_from_evidence(evidence.speech, audio_path=str(audio_path))
+        objective_data["evidence_schema_version"] = evidence.schema_version
     except ObjectiveExtractionError as exc:
         print("\n[エラー] 客観データ抽出に失敗しました。")
         print(str(exc))
@@ -66,8 +73,12 @@ def run_interactive(
 
     print("\n[2/5] Rangeモジュール: 単語分割・辞書照合・語彙統計を計算中...")
     try:
-        range_data = RangeExtractor.default().analyze(
-            str(objective_data["raw_transcript_hiragana"])
+        range_extractor = RangeExtractor.default()
+        analyze_evidence = getattr(type(range_extractor), "analyze_linguistic_evidence", None)
+        range_data = (
+            analyze_evidence(range_extractor, evidence.linguistic)
+            if callable(analyze_evidence)
+            else range_extractor.analyze(evidence.speech.raw_transcript_hiragana)
         )
     except Exception as exc:
         print("\n[エラー] Range客観データの抽出に失敗しました。")
@@ -581,7 +592,7 @@ def print_objective_data(objective_data: dict) -> None:
     print(f"発話時間: {metrics['speech_sec']}秒 / 発話率: {metrics['speech_ratio_pct']}%")
     print(f"ポーズ: {metrics['pause_count']}回 / 平均 {metrics['avg_pause_sec']}秒 / 最長 {metrics['max_pause_sec']}秒")
     print(f"モーラ: {metrics['mora_count']} / {metrics['mora_per_sec']} モーラ/秒")
-    print(f"流暢さグレード: {metrics['fluency_grade']}")
+    print("注: Fluencyモジュールは事実データのみを出力します。レベル評価は後段のJudgeが行います。")
     if objective_data["top_pauses"]:
         print("長いポーズ:")
         for pause in objective_data["top_pauses"]:

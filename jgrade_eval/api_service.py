@@ -8,6 +8,8 @@ from uuid import uuid4
 
 from .audio_pipeline import FluencyExtractor
 from .deliberation import deliberate_auto_cefr
+from .evidence import EvidencePipeline, FluencySpeechEvidenceExtractor, LinguisticEvidenceExtractor
+from .evidence.speech import objective_data_from_evidence
 from .live_judges import (
     JudgeFailure,
     ProviderSpec,
@@ -42,6 +44,7 @@ def evaluate_speech_level(
     profile: TuningProfile | None = None,
     extractor: FluencyExtractor | None = None,
     range_extractor: RangeExtractor | None = None,
+    evidence_pipeline: EvidencePipeline | None = None,
 ) -> dict[str, Any]:
     """Evaluate one speech file and return an API-shaped completed result."""
 
@@ -54,11 +57,21 @@ def evaluate_speech_level(
 
     evaluation_id = f"eval_{uuid4().hex[:12]}"
     created_at = _now_iso()
-    objective_data = (extractor or FluencyExtractor()).extract(audio_path)
-    range_data = (range_extractor or RangeExtractor.default()).analyze(
-        str(objective_data["raw_transcript_hiragana"])
+    active_range_extractor = range_extractor or RangeExtractor.default()
+    active_pipeline = evidence_pipeline or EvidencePipeline(
+        speech_extractor=FluencySpeechEvidenceExtractor(extractor or FluencyExtractor()),
+        linguistic_extractor=LinguisticEvidenceExtractor(),
+    )
+    evidence = active_pipeline.build(audio_path)
+    objective_data = objective_data_from_evidence(evidence.speech, audio_path=str(audio_path))
+    analyze_evidence = getattr(type(active_range_extractor), "analyze_linguistic_evidence", None)
+    range_data = (
+        analyze_evidence(active_range_extractor, evidence.linguistic)
+        if callable(analyze_evidence)
+        else active_range_extractor.analyze(evidence.speech.raw_transcript_hiragana)
     )
     objective_data["range_data"] = range_data
+    objective_data["evidence_schema_version"] = evidence.schema_version
     sample_id = external_id or evaluation_id
     roleplay_input = {
         "sample_id": sample_id,

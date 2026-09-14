@@ -81,6 +81,8 @@ class JGradeApiTests(unittest.TestCase):
         ])
         self.assertEqual(result["objective_data"]["range_data"]["dictionary_version"], "fake-range-dictionary")
         self.assertEqual(judge_inputs[0]["range_data"], result["objective_data"]["range_data"])
+        self.assertNotIn("fluency_grade", result["objective_data"]["fluency_metrics"])
+        self.assertEqual(result["objective_data"]["evidence_schema_version"], "evidence.v1")
 
     def test_create_speech_level_evaluation_returns_completed_result(self) -> None:
         EVALUATIONS.clear()
