@@ -1,14 +1,21 @@
 from __future__ import annotations
 
+from collections import Counter
+import os
 import shlex
 import subprocess
-import os
 from getpass import getpass
 from pathlib import Path
 
+from .accuracy import AccuracyModule
 from .audio_pipeline import FluencyExtractor, ObjectiveExtractionError
 from .deliberation import AutoCefrDeliberation, deliberate_auto_cefr
-from .evidence import EvidencePipeline, FluencySpeechEvidenceExtractor, LinguisticEvidenceExtractor
+from .evidence import (
+    EvidenceBundle,
+    EvidencePipeline,
+    FluencySpeechEvidenceExtractor,
+    LinguisticEvidenceExtractor,
+)
 from .evidence.speech import objective_data_from_evidence
 from .live_judges import (
     PROVIDER_KEY_ENVS,
@@ -70,6 +77,7 @@ def run_interactive(
         print("\n[エラー] 客観データ抽出に失敗しました。")
         print(str(exc))
         raise SystemExit(2) from exc
+    print_common_evidence_data(evidence)
 
     print("\n[2/5] Rangeモジュール: 単語分割・辞書照合・語彙統計を計算中...")
     try:
@@ -85,6 +93,15 @@ def run_interactive(
         print(str(exc))
         raise SystemExit(2) from exc
     objective_data = {**objective_data, "range_data": range_data}
+
+    print("\n[3/5] Accuracyモジュール: 共有Evidenceから時刻・形態素観測を抽出中...")
+    try:
+        accuracy_data = AccuracyModule().collect(evidence).to_dict()
+    except Exception as exc:
+        print("\n[エラー] Accuracy客観データの抽出に失敗しました。")
+        print(str(exc))
+        raise SystemExit(2) from exc
+    objective_data = {**objective_data, "accuracy_data": accuracy_data}
     print_objective_data(objective_data)
     profile = load_profile(profile_path) if profile_path else None
     review_sample_id = make_review_sample_id(audio_path, objective_data)
@@ -103,12 +120,13 @@ def run_interactive(
         "raw_transcript_hiragana": objective_data["raw_transcript_hiragana"],
         "fluency_metrics": objective_data["fluency_metrics"],
         "range_data": objective_data["range_data"],
+        "accuracy_data": objective_data["accuracy_data"],
         "speaker_metadata": {},
         "optional_expected_information": [],
     }
 
     judge_count = len(provider_specs) if judge_mode == "live" and provider_specs else 3
-    print(f"\n[3/5] {judge_count} JudgeでCEFRレベルを自動推定中...")
+    print(f"\n[4/5] {judge_count} JudgeでCEFRレベルを自動推定中...")
     if judge_mode == "mock":
         auto_results = judge_auto_cefr_with_mock_panel(roleplay_input)
         judge_failures = []
@@ -138,7 +156,7 @@ def run_interactive(
 
     print_auto_level_judge_results(auto_results)
 
-    print("\n[4/5] CEFR協議を計算中...")
+    print("\n[5/5] CEFR協議を計算中...")
     deliberation = deliberate_auto_cefr(
         auto_results,
         objective_data=objective_data,
@@ -170,7 +188,7 @@ def run_interactive(
         append_judged_sample(review_store_path, record=record, source="interactive")
         print(f"判定履歴を保存しました: {review_store_path}")
 
-    print("\n[5/5] 完了")
+    print("\n完了")
     print("注: これは選択した1音声に対するCEFR推定です。")
     print("公開・本番利用前には、人間教師ラベルとのベンチマークで精度検証してください。")
 
@@ -579,6 +597,28 @@ def _upsert_env_value(path: Path, key: str, value: str) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def print_common_evidence_data(evidence: EvidenceBundle) -> None:
+    """Print the shared factual inputs once before independent modules run."""
+    provenance = dict(evidence.speech.provenance)
+    print("\n=== 共通Evidence層客観データ ===")
+    print(f"schema: {evidence.schema_version}")
+    print(f"audio: {evidence.source.audio_path}")
+    print(
+        "共有入力: "
+        f"発話区間{len(evidence.speech.speech_segments)} / "
+        f"ポーズ区間{len(evidence.speech.pause_segments)} / "
+        f"モーラ時刻{len(evidence.speech.mora_timings)} / "
+        f"形態素トークン{len(evidence.linguistic.tokens)}"
+    )
+    print(
+        "来歴: "
+        f"STT={provenance.get('stt_model', 'unknown')} / "
+        f"Tokenizer={evidence.linguistic.tokenizer_version} / "
+        f"split_mode={evidence.linguistic.split_mode}"
+    )
+    print("注: 共通Evidence層は未評価の入力事実を1回だけ生成し、各モジュールへ渡します。")
+
+
 def print_objective_data(objective_data: dict) -> None:
     metrics = objective_data["fluency_metrics"]
     transcript = objective_data["raw_transcript_hiragana"]
@@ -632,6 +672,34 @@ def print_objective_data(objective_data: dict) -> None:
             f"  JLPT {level}: token={level_counts.get('token_count', 0)} "
             f"/ unique_lemma={level_counts.get('unique_lemma_count', 0)}"
         )
+
+    accuracy_data = objective_data.get("accuracy_data")
+    if not isinstance(accuracy_data, dict):
+        return
+    asr_observations = accuracy_data.get("asr_observations", [])
+    morphology_observations = accuracy_data.get("morphology_observations", [])
+    reference_differences = accuracy_data.get("reference_differences", [])
+    unavailable_capabilities = accuracy_data.get("unavailable_capabilities", [])
+    pattern_counts = Counter(
+        pattern_id
+        for observation in morphology_observations
+        if isinstance(observation, dict)
+        for pattern_id in observation.get("pattern_ids", [])
+    )
+
+    print("\n=== Accuracy客観データ ===")
+    print("生成元: Accuracyモジュール（共有Evidence、LLM不使用）")
+    print(f"ASR時刻観測: {len(asr_observations)}モーラ（CTC確率は未較正）")
+    print(f"形態素観測: {len(morphology_observations)}トークン")
+    if pattern_counts:
+        rendered_patterns = " / ".join(
+            f"{pattern_id}={count}" for pattern_id, count in sorted(pattern_counts.items())
+        )
+        print(f"局所形態素パターン: {rendered_patterns}")
+    print(f"参照文との差分: {len(reference_differences)}件（参照文未指定なら0件）")
+    if unavailable_capabilities:
+        print(f"未提供の能力: {', '.join(str(item) for item in unavailable_capabilities)}")
+    print("注: Accuracyモジュールは観測事実のみを出力します。正誤・発音診断・レベル評価は行いません。")
 
 
 def print_judge_results(judge_results: list[JudgeResult]) -> None:
