@@ -786,7 +786,7 @@ class InteractiveCliTests(unittest.TestCase):
         self.assertIn("JLPT N5: token=2 / unique_lemma=2", rendered)
         self.assertNotIn("=== 客観データ ===", rendered)
 
-    def test_interactive_adds_range_evidence_without_prompting_for_user_cefr(self) -> None:
+    def test_interactive_prints_shared_and_accuracy_evidence_without_prompting_for_user_cefr(self) -> None:
         import io
         from contextlib import redirect_stdout
 
@@ -855,9 +855,13 @@ class InteractiveCliTests(unittest.TestCase):
 
         range_extractor.analyze.assert_called_once_with("わたしはすしがすきです")
         self.assertEqual(judge_inputs[0]["range_data"], range_data)
+        self.assertEqual(judge_inputs[0]["accuracy_data"]["module_id"], "accuracy")
         prompt_level.assert_not_called()
         self.assertIn("[1/5] Fluencyモジュール", output.getvalue())
         self.assertIn("[2/5] Rangeモジュール", output.getvalue())
+        self.assertIn("[3/5] Accuracyモジュール", output.getvalue())
+        self.assertIn("=== 共通Evidence層客観データ ===", output.getvalue())
+        self.assertIn("=== Accuracy客観データ ===", output.getvalue())
 
 
 class TuningTests(unittest.TestCase):
