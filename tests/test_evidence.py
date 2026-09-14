@@ -135,6 +135,27 @@ class EvidencePipelineTests(unittest.TestCase):
         self.assertTrue(TokenizedWord("寿司", "寿司", "すし", ("名詞",)).is_lexical)
         self.assertFalse(TokenizedWord("は", "は", "は", ("助詞",)).is_lexical)
 
+    def test_fluency_compatibility_facts_remain_stable(self) -> None:
+        from jgrade_eval.evidence.speech import objective_data_from_evidence
+
+        evidence = FluencySpeechEvidenceExtractor(FakeSpeechExtractor()).extract(Path("sample.mp3"))
+
+        self.assertEqual(
+            objective_data_from_evidence(evidence, audio_path="sample.mp3"),
+            {
+                "audio_path": "sample.mp3",
+                "raw_transcript_hiragana": "わたしはすしがすきです",
+                "raw_transcript_romaji": "watashiha",
+                "fluency_metrics": {},
+                "top_pauses": [],
+                "pause_segments": [],
+                "speech_segments": [{"start": 0.0, "end": 1.2, "duration": 1.2}],
+                "mora_timings": [{"mora": "わ", "start": 0.0, "end": 0.1}],
+                "stt_model": "fake-stt-v1",
+                "vad_model": "fake-vad-v1",
+            },
+        )
+
 
 class _FailingTokenizer:
     version = "unused"

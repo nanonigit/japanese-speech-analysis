@@ -1,0 +1,44 @@
+sequenceDiagram
+    autonumber
+    actor Client as クライアント
+    box rgb(218, 247, 232) 実装済み: 共通Evidence層
+    participant API as jgrade_eval/api_service.py<br/>evaluate_speech_level()
+    participant Pipeline as jgrade_eval/evidence/pipeline.py<br/>EvidencePipeline
+    participant Speech as jgrade_eval/audio_pipeline.py<br/>FluencyExtractor
+    participant Adapter as jgrade_eval/evidence/speech.py<br/>FluencySpeechEvidenceExtractor
+    participant Linguistic as jgrade_eval/evidence/linguistic.py<br/>LinguisticEvidenceExtractor / SudachiTokenizer
+    participant Bundle as jgrade_eval/evidence/models.py<br/>EvidenceBundle v1
+    end
+    box rgb(218, 247, 232) 実装済み: Rangeモジュール
+    participant Range as jgrade_eval/range.py<br/>RangeExtractor
+    end
+    box rgb(220, 236, 255) 後段評価: AI Judge
+    participant Judge as AI Judge<br/>後段評価のみ
+    end
+    box rgb(255, 244, 199) 設計済み・未実装: 正確さモジュール
+    participant Accuracy as 未実装（設計済み）<br/>accuracy.py / AccuracyFactPacket
+    end
+
+    Note over Client,Accuracy: 実線 = 実装済み　／　点線 = 正確さの将来実装
+
+    Client->>API: 音声と評価条件を送信
+    API->>Pipeline: build(audio_path)
+    Pipeline->>Adapter: extract(audio_path)
+    Adapter->>Speech: extract(audio_path)
+    Speech-->>Adapter: ひらがな・VAD区間・ポーズ・モーラ時刻（事実）
+    Adapter-->>Pipeline: SpeechEvidence（事実のみ）
+    Pipeline->>Linguistic: analyze(ひらがな文字起こし)
+    Linguistic-->>Pipeline: LinguisticEvidence（トークン・品詞・読み）
+    Pipeline-->>Bundle: EvidenceBundle v1 を生成
+    Bundle-->>API: 共有Evidence
+
+    API->>Range: analyze_linguistic_evidence(共有トークン)
+    Range-->>API: Range Fact（語彙の事実）
+    API->>Judge: SpeechEvidence + Range Fact
+    Judge-->>API: CEFR/JFS評価・根拠・レビュー要否
+    API-->>Client: 評価結果
+
+    Note over Pipeline,Accuracy: 将来: Accuracy選択時だけ追加する経路
+    Pipeline-->>Accuracy: .. EvidenceBundle v2 + AsrAlignmentEvidence ..
+    Accuracy-->>API: .. AccuracyFactPacket（未較正ASR観測・形態素観測・任意参照差分） ..
+    API->>Judge: .. Accuracy Factを追加して渡す ..
