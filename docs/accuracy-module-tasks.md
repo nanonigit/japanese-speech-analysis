@@ -1,26 +1,26 @@
 # Accuracy Module Implementation Plan
 
-## Phase 1 — Contracts and tests
+## Phase 1 — Contracts and tests (complete)
 
 1. Add failing unit tests for `AsrUnitEvidence`, `AsrAlignmentEvidence`, and `AccuracyFactPacket` serialization.
 2. Add negative tests that reject `score`, `correct`, `error`, and CEFR fields from Accuracy output.
 3. Add tests for explicit unavailable capability records and optional reference differences.
 
-## Phase 2 — Common capability extension
+## Phase 2 — Common capability extension (partially deferred)
 
-1. Introduce Evidence schema v2 additively; old v1 cache entries remain readable or are bypassed by schema-key change.
-2. Add `AsrAlignmentProvider` and a Wav2Vec2 CTC adapter that derives compact per-unit summaries from existing logits.
-3. Extend `FluencyExtractor` handoff without serializing raw logits.
-4. Include alignment-provider identity and decoder configuration in cache provenance.
+1. Keep Evidence v1 unchanged in the first implementation, preserving Fluency/Range output contracts.
+2. Defer `AsrAlignmentProvider` and Evidence v2 until a compact Wav2Vec2 posterior implementation is selected and validated.
+3. Do not serialize raw logits.
+4. The future provider must include decoder configuration and identity in cache provenance.
 
-## Phase 3 — Independent Accuracy module
+## Phase 3 — Independent Accuracy module (complete for timing/morphology/reference facts)
 
 1. Add `jgrade_eval/accuracy.py` with a `collect(bundle, reference=None)` interface.
 2. Reuse `LinguisticEvidence` for morphology observations; do not tokenize again.
 3. Add deterministic reference alignment behind an explicit reference option.
 4. Add capability/status fields and fact-only serialization.
 
-## Phase 4 — Orchestration and delivery
+## Phase 4 — Orchestration and delivery (complete for API service selection)
 
 1. Add `ModuleRunner` and selected-module request configuration while preserving current Fluency/Range API compatibility.
 2. Integrate Accuracy FactPacket only when selected; keep downstream Judge as the sole evaluator.

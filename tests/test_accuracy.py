@@ -72,16 +72,46 @@ class AccuracyModuleTests(unittest.TestCase):
         self.assertEqual(differences[2]["observed"], "すし")
         self.assertEqual(differences[2]["reference"], "さしみ")
 
+    def test_reference_difference_records_extra_observed_tokens_without_an_error_label(self) -> None:
+        module = AccuracyModule(
+            reference_tokenizer=_StaticReferenceTokenizer(
+                [
+                    TokenEvidence("わたし", "私", "わたし", ("名詞",), 0, 3),
+                    TokenEvidence("です", "です", "です", ("助動詞",), 3, 5),
+                ]
+            )
+        )
+
+        differences = module.collect(
+            self.bundle,
+            reference_transcript="ignored-by-static-tokenizer",
+        ).to_dict()["reference_differences"]
+
+        self.assertEqual([item["operation"] for item in differences], ["equal", "delete", "delete", "equal"])
+        self.assertNotIn("error", differences[1])
+
 
 class _ReferenceTokenizer:
     version = "reference-tokenizer"
     split_mode = "A"
 
     def tokenize(self, text: str) -> list[TokenEvidence]:
-        self.assertEqual(text, "わたしはさしみです")
+        if text != "わたしはさしみです":
+            raise AssertionError(f"unexpected reference text: {text}")
         return [
             TokenEvidence("わたし", "私", "わたし", ("名詞",), 0, 3),
             TokenEvidence("は", "は", "は", ("助詞",), 3, 4),
             TokenEvidence("さしみ", "刺身", "さしみ", ("名詞",), 4, 7),
             TokenEvidence("です", "です", "です", ("助動詞",), 7, 9),
         ]
+
+
+class _StaticReferenceTokenizer:
+    version = "static-reference-tokenizer"
+    split_mode = "A"
+
+    def __init__(self, tokens: list[TokenEvidence]) -> None:
+        self._tokens = tokens
+
+    def tokenize(self, text: str) -> list[TokenEvidence]:
+        return self._tokens

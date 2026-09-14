@@ -3,9 +3,10 @@ from __future__ import annotations
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 from uuid import uuid4
 
+from .accuracy import AccuracyModule
 from .audio_pipeline import FluencyExtractor
 from .deliberation import deliberate_auto_cefr
 from .evidence import EvidencePipeline, FluencySpeechEvidenceExtractor, LinguisticEvidenceExtractor
@@ -28,6 +29,9 @@ TASK_RATING_ORDER = {
     Rating.EXCELLENT: 3,
 }
 
+DEFAULT_FACT_MODULES = frozenset({"fluency", "range"})
+SUPPORTED_FACT_MODULES = frozenset({"fluency", "range", "accuracy"})
+
 
 def evaluate_speech_level(
     audio_path: Path,
@@ -45,6 +49,7 @@ def evaluate_speech_level(
     extractor: FluencyExtractor | None = None,
     range_extractor: RangeExtractor | None = None,
     evidence_pipeline: EvidencePipeline | None = None,
+    selected_modules: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     """Evaluate one speech file and return an API-shaped completed result."""
 
@@ -57,20 +62,27 @@ def evaluate_speech_level(
 
     evaluation_id = f"eval_{uuid4().hex[:12]}"
     created_at = _now_iso()
-    active_range_extractor = range_extractor or RangeExtractor.default()
+    active_modules = _normalize_fact_modules(selected_modules)
     active_pipeline = evidence_pipeline or EvidencePipeline(
         speech_extractor=FluencySpeechEvidenceExtractor(extractor or FluencyExtractor()),
         linguistic_extractor=LinguisticEvidenceExtractor(),
     )
     evidence = active_pipeline.build(audio_path)
     objective_data = objective_data_from_evidence(evidence.speech, audio_path=str(audio_path))
-    analyze_evidence = getattr(type(active_range_extractor), "analyze_linguistic_evidence", None)
-    range_data = (
-        analyze_evidence(active_range_extractor, evidence.linguistic)
-        if callable(analyze_evidence)
-        else active_range_extractor.analyze(evidence.speech.raw_transcript_hiragana)
-    )
-    objective_data["range_data"] = range_data
+    range_data: dict[str, Any] | None = None
+    if "range" in active_modules:
+        active_range_extractor = range_extractor or RangeExtractor.default()
+        analyze_evidence = getattr(type(active_range_extractor), "analyze_linguistic_evidence", None)
+        range_data = (
+            analyze_evidence(active_range_extractor, evidence.linguistic)
+            if callable(analyze_evidence)
+            else active_range_extractor.analyze(evidence.speech.raw_transcript_hiragana)
+        )
+        objective_data["range_data"] = range_data
+    accuracy_data: dict[str, Any] | None = None
+    if "accuracy" in active_modules:
+        accuracy_data = AccuracyModule().collect(evidence).to_dict()
+        objective_data["accuracy_data"] = accuracy_data
     objective_data["evidence_schema_version"] = evidence.schema_version
     sample_id = external_id or evaluation_id
     roleplay_input = {
@@ -81,10 +93,13 @@ def evaluate_speech_level(
         "jfs_can_do_criteria": jfs_can_do_criteria or [],
         "raw_transcript_hiragana": objective_data["raw_transcript_hiragana"],
         "fluency_metrics": objective_data["fluency_metrics"],
-        "range_data": range_data,
         "speaker_metadata": speaker_metadata or {},
         "optional_expected_information": [],
     }
+    if range_data is not None:
+        roleplay_input["range_data"] = range_data
+    if accuracy_data is not None:
+        roleplay_input["accuracy_data"] = accuracy_data
 
     judge_failures: list[JudgeFailure] = []
     if judge_mode == "mock":
@@ -121,6 +136,7 @@ def evaluate_speech_level(
         "status": "completed",
         "language": language,
         "judge_mode": judge_mode,
+        "fact_modules": sorted(active_modules),
         "final_cefr_level": decision.final_cefr_level,
         "task_rating": task_rating.value,
         "confidence": confidence,
@@ -165,6 +181,15 @@ def _aggregate_task_rating(results: list[AutoLevelJudgeResult]) -> Rating:
     if len(sorted_ratings) == 2:
         return sorted_ratings[0]
     return sorted_ratings[len(sorted_ratings) // 2]
+
+
+def _normalize_fact_modules(selected_modules: Iterable[str] | None) -> frozenset[str]:
+    modules = DEFAULT_FACT_MODULES if selected_modules is None else frozenset(selected_modules)
+    unknown = modules - SUPPORTED_FACT_MODULES
+    if unknown:
+        names = ", ".join(sorted(unknown))
+        raise ValueError(f"unsupported fact module(s): {names}")
+    return modules
 
 
 def _aggregate_confidence(results: list[AutoLevelJudgeResult], final_level: str) -> float:

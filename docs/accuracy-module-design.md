@@ -8,7 +8,11 @@ Implement Accuracy as an independent fact collector, not as a classifier. It con
 
 Wav2Vec2 CTC logits represent model token probabilities. Their selected-token posterior can be a useful observation about recognition uncertainty, but it is neither calibrated learner-performance probability nor evidence that the learner made a pronunciation/grammar error. Every posterior-derived value therefore includes `calibration_status="uncalibrated"`, a derivation label, model id, and decoding configuration.
 
-## Schema additions
+## Implemented v1 and future provider boundary
+
+The implemented v1 derives `AsrObservation` directly from the stable v1 mora timings, so it does not change `EvidenceBundle`, Fluency facts, or Range facts. Posterior fields are null and capability status is `unavailable`.
+
+When a compact, validated CTC posterior provider is selected, the following additive Evidence v2 extension remains the intended path:
 
 ```text
 EvidenceBundle (v2, additive)
@@ -34,7 +38,7 @@ AccuracyFactPacket (module output)
 └── unavailable_capabilities
 ```
 
-No frame logits are serialized. The ASR adapter reduces the already-produced CTC logits to compact per-emission summaries before the bundle is created. This avoids large cache entries and preserves a stable, auditable derivation.
+No frame logits will be serialized. A future ASR adapter must reduce the already-produced CTC logits to compact per-emission summaries before the bundle is created. This avoids large cache entries and preserves a stable, auditable derivation.
 
 ## Deterministic collectors
 

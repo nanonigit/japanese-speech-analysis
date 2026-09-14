@@ -8,7 +8,7 @@ Define the fact-only Accuracy module before implementation. It must remain indep
 
 1. **Requirements** — complete: scope, non-goals, contracts, and acceptance criteria documented.
 2. **Research and design** — complete: CTC timestamp/logit and forced-alignment boundaries, provider protocol, and schema documented.
-3. **Implementation plan** — in progress: test-first implementation and regression verification for Accuracy.
+3. **Implementation plan** — complete: Accuracy timing/morphology/reference facts, independent selection, and regression verification implemented.
 
 ## Decisions already fixed
 
@@ -23,3 +23,4 @@ Define the fact-only Accuracy module before implementation. It must remain indep
 | Initial web-result handling expected structured content, but the browser returned a string | Recorded the tool-shape mismatch and used the returned primary-source URLs without repeating the same handling approach. |
 | Mermaid file replacement attempted delete and add for the same file in one patch | Applied the delete and add as separate patches, then replaced the Markdown copy with the sequence form. |
 | New Accuracy contract test cannot import `jgrade_eval.accuracy` | Intended RED state; production module has not yet been created. Existing Evidence regression tests pass. |
+| `python -m coverage` could not run because the package is absent | Recorded as an unavailable verification, not as coverage success; focused and complete unit suites remain the executed evidence. |

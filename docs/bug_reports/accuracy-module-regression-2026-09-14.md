@@ -37,3 +37,11 @@ Accuracy must be added without changing the fact output contract of the already 
 - Keep ASR posterior confidence unavailable until a compact provider is implemented and calibrated.
 - Add API module selection only after unit-level contracts are green.
 - Run focused Accuracy/Evidence tests, then the full suite and output-contract regression checks before completion.
+
+## Repair and verification
+
+- Added `jgrade_eval/accuracy.py`. It emits mora-timing ASR observations, shared morphology observations, optional explicit-reference edit operations, and unavailable-capability names only.
+- Added optional API `fact_modules`; the default remains exactly `fluency` plus `range`, so Accuracy is not run or sent to Judges unless selected.
+- Added the Judge prompt boundary: `accuracy_data` is observation data; unavailable/uncalibrated ASR information and reference differences are not learner-error instructions.
+- Verified focused tests (17), the complete suite (76), compile checks, and `git diff --check`.
+- Coverage tooling is not installed in the current `uv` environment (`No module named coverage`); this is recorded rather than treated as a passing coverage measurement.

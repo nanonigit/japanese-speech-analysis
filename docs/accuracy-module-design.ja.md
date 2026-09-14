@@ -8,7 +8,11 @@
 
 Wav2Vec2 CTCのlogitはモデルが出したトークン確率であり、学習者の発音・文法の正確さではない。そのため確率由来の値には、導出方法、モデルID、デコード設定、`calibration_status="uncalibrated"` を必ず添える。
 
-## 追加するデータ
+## 実装済みv1と将来の提供者境界
+
+実装済みv1は安定したモーラ時刻から `AsrObservation` を直接作るため、`EvidenceBundle`、Fluency事実、Range事実を変更しない。確率フィールドはnullで、能力状態は `unavailable` である。
+
+将来、検証済みのコンパクトなCTC確率提供者を選ぶ場合だけ、以下の追加的なEvidence v2拡張を使う。
 
 ```text
 EvidenceBundle v2（追加的変更）
@@ -25,7 +29,7 @@ AccuracyFactPacket
 └── 未対応能力
 ```
 
-フレーム全体のlogitは保存せず、すでに生成しているlogitから発話単位の要約値だけを作る。
+フレーム全体のlogitは保存しない。将来のASRアダプターは、既に生成しているlogitから発話単位の要約値だけを作る。
 
 ## 収集器
 

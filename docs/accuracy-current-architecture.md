@@ -20,8 +20,8 @@ sequenceDiagram
     box rgb(220, 236, 255) 後段評価: AI Judge
     participant Judge as AI Judge（唯一の評価者）
     end
-    box rgb(255, 244, 199) 設計済み・未実装: 正確さモジュール
-    participant Accuracy as 未実装: accuracy.py<br/>AccuracyFactPacket
+    box rgb(218, 247, 232) 実装済み: 正確さモジュール
+    participant Accuracy as accuracy.py<br/>AccuracyModule / AccuracyFactPacket
     end
 
     Client->>API: 音声と評価条件
@@ -40,12 +40,12 @@ sequenceDiagram
     Judge-->>API: CEFR/JFS評価
     API-->>Client: 結果
 
-    Note over Pipeline,Accuracy: 点線は将来の正確さモジュール
-    Pipeline-->>Accuracy: .. EvidenceBundle v2 + ASR事実 ..
-    Accuracy-->>API: .. AccuracyFactPacket（事実のみ） ..
-    API->>Judge: .. Accuracy Factを追加 ..
+    Note over Pipeline,Accuracy: Accuracy選択時だけ追加する実装済み経路
+    Pipeline->>Accuracy: EvidenceBundle v1（モーラ時刻・共有形態素）
+    Accuracy-->>API: AccuracyFactPacket（事実のみ・確率はunavailable）
+    API->>Judge: Accuracy Factを追加
 ```
 
 - 実線は実装済みです。
-- `Accuracy` への点線は設計済みで、まだコードはありません。
+- `Accuracy` は実装済みで、選択された場合だけ実行されます。
 - AI JudgeだけがCEFR/JFSの評価を行います。

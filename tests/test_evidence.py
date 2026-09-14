@@ -127,9 +127,13 @@ class EvidencePipelineTests(unittest.TestCase):
         extractor = RangeExtractor(_FailingTokenizer(), vocabulary)
 
         analysis = extractor.analyze_linguistic_evidence(bundle.linguistic)
+        direct_analysis = RangeExtractor(FakeTokenizer(), vocabulary).analyze(
+            bundle.speech.raw_transcript_hiragana
+        )
 
         self.assertEqual(analysis["statistics"]["token_count"], 3)
         self.assertEqual(analysis["statistics"]["known_token_count"], 2)
+        self.assertEqual(analysis, direct_analysis)
 
     def test_range_tokenized_word_keeps_its_public_lexical_property(self) -> None:
         self.assertTrue(TokenizedWord("寿司", "寿司", "すし", ("名詞",)).is_lexical)

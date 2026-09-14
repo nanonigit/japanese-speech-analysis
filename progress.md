@@ -14,3 +14,4 @@
 - Added API module-selection contract tests before implementation; next is a second focused RED run covering the service boundary.
 - Accuracy unit and service-selection contracts are GREEN (14 focused tests). Added HTTP module-selection coverage before exposing the option through the request parser.
 - Added a RED test for the Judge prompt boundary: Accuracy observations must not be reinterpreted as correctness before the Judge evaluates them.
+- Implemented Accuracy timing/morphology/reference fact collection and API `fact_modules` selection. Focused tests (17), full suite (76), compilation, and diff checks passed. Coverage could not run because the `coverage` package is absent.
