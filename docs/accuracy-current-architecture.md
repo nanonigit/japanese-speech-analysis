@@ -1,51 +1,72 @@
-# 現在の構成図 — 共通Evidence層と正確さモジュール
+# 現在のUMLシーケンス図 — 共通Evidence層と5要素モジュール
 
-上部にファイル／機能の四角を並べ、矢印を左右に追うUMLシーケンス図です。
+実装済みの共通Evidence層、Fluency、Range、Accuracyと、未実装のInteraction、Coherenceをファイル名つきの枠で示した現在図です。
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as クライアント
-    box rgb(218, 247, 232) 実装済み: 共通Evidence層
-    participant API as api_service.py<br/>evaluate_speech_level()
-    participant Pipeline as evidence/pipeline.py<br/>EvidencePipeline
-    participant Speech as audio_pipeline.py<br/>FluencyExtractor
-    participant Adapter as evidence/speech.py<br/>互換アダプター
-    participant Linguistic as evidence/linguistic.py<br/>SudachiTokenizer
-    participant Bundle as evidence/models.py<br/>EvidenceBundle v1
+    actor User as 利用者
+    participant Console as jgrade_eval/interactive.py<br/>run_interactive()
+
+    box rgb(218, 247, 232) 実装済み: 共通Evidence層（最初に1回だけ実行）
+    participant Pipeline as jgrade_eval/evidence/pipeline.py<br/>EvidencePipeline
+    participant Linguistic as jgrade_eval/evidence/linguistic.py<br/>LinguisticEvidenceExtractor / SudachiTokenizer
+    participant Bundle as jgrade_eval/evidence/models.py<br/>EvidenceBundle v1
     end
+
+    box rgb(218, 247, 232) 実装済み: Fluencyモジュール
+    participant Fluency as jgrade_eval/audio_pipeline.py<br/>FluencyExtractor
+    end
+
     box rgb(218, 247, 232) 実装済み: Rangeモジュール
-    participant Range as range.py<br/>RangeExtractor
-    end
-    box rgb(220, 236, 255) 後段評価: AI Judge
-    participant Judge as AI Judge（唯一の評価者）
-    end
-    box rgb(218, 247, 232) 実装済み: 正確さモジュール
-    participant Accuracy as accuracy.py<br/>AccuracyModule / AccuracyFactPacket
+    participant Range as jgrade_eval/range.py<br/>RangeExtractor
     end
 
-    Client->>API: 音声と評価条件
-    API->>Pipeline: build(audio_path)
-    Pipeline->>Adapter: extract(audio_path)
-    Adapter->>Speech: extract(audio_path)
-    Speech-->>Adapter: 文字起こし・VAD・ポーズ・モーラ時刻
-    Adapter-->>Pipeline: SpeechEvidence
-    Pipeline->>Linguistic: 共有トークン化
-    Linguistic-->>Pipeline: LinguisticEvidence
-    Pipeline-->>Bundle: EvidenceBundle v1
-    Bundle-->>API: 共有Evidence
-    API->>Range: 共有トークンを渡す
-    Range-->>API: Range Fact
-    API->>Judge: SpeechEvidence + Range Fact
-    Judge-->>API: CEFR/JFS評価
-    API-->>Client: 結果
+    box rgb(218, 247, 232) 実装済み: Accuracyモジュール
+    participant Accuracy as jgrade_eval/accuracy.py<br/>AccuracyModule
+    end
 
-    Note over Pipeline,Accuracy: Accuracy選択時だけ追加する実装済み経路
-    Pipeline->>Accuracy: EvidenceBundle v1（モーラ時刻・共有形態素）
-    Accuracy-->>API: AccuracyFactPacket（事実のみ・確率はunavailable）
-    API->>Judge: Accuracy Factを追加
+    box rgb(235, 235, 235) 未実装: Interactionモジュール
+    participant Interaction as （今後追加）
+    end
+
+    box rgb(235, 235, 235) 未実装: Coherenceモジュール
+    participant Coherence as （今後追加）
+    end
+
+    box rgb(220, 236, 255) 後段の評価層（唯一の評価者）
+    participant Judge as jgrade_eval/prompts.py<br/>AI Judge
+    participant Deliberation as jgrade_eval/deliberation.py<br/>CEFR協議
+    end
+
+    Note over Console,Coherence: モジュールと共通層は事実のみを生成し、評価はしない
+
+    User->>Console: 音声を選択
+    Console->>Pipeline: build(audio_path)
+    Pipeline->>Fluency: extract(audio_path)
+    Fluency-->>Pipeline: ひらがな・VAD・ポーズ・モーラ時刻（事実）
+    Pipeline->>Linguistic: analyze(ひらがな文字起こし)
+    Linguistic-->>Pipeline: 共有トークン・品詞・読み（事実）
+    Pipeline-->>Bundle: EvidenceBundle v1 を生成
+    Bundle-->>Console: 共有Evidence
+    Console->>Console: 共通Evidence層客観データを表示
+
+    Console->>Console: Fluency客観データを表示
+    Console->>Range: analyze_linguistic_evidence(共有トークン)
+    Range-->>Console: Range Fact（語彙統計・JLPT照合）
+    Console->>Accuracy: collect(EvidenceBundle)
+    Accuracy-->>Console: Accuracy Fact（時刻・形態素観測）
+    Console->>Console: Range / Accuracy 客観データを表示
+
+    Note over Interaction,Coherence: 未実装。追加時もEvidenceBundleを読む独立モジュールにする
+    Console->>Judge: Fluency + Range + Accuracy の事実データ
+    Judge-->>Console: 各JudgeのCEFR推定・根拠
+    Console->>Deliberation: Judge結果 + 客観データ
+    Deliberation-->>Console: CEFR協議結果・人間確認要否
+    Console-->>User: 結果を表示・履歴を保存
 ```
 
-- 実線は実装済みです。
-- `Accuracy` は実装済みで、選択された場合だけ実行されます。
-- AI JudgeだけがCEFR/JFSの評価を行います。
+- 緑の枠は実装済み、灰色の枠は未実装です。
+- 共通Evidence層が最初に一度だけ音声とテキストの事実を作ります。
+- 5つの各モジュールは、その共通事実を読むだけで、採点・正誤判定・CEFR判定はしません。
+- AI JudgeとCEFR協議だけが評価を行います。
