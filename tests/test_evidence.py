@@ -4,6 +4,8 @@ from pathlib import Path
 import tempfile
 import unittest
 
+from jgrade_eval.accuracy import AccuracyModule
+from jgrade_eval.coherence import CoherenceModule
 from jgrade_eval.evidence.cache import EvidenceCache
 from jgrade_eval.evidence.linguistic import LinguisticEvidenceExtractor, TokenEvidence
 from jgrade_eval.evidence.pipeline import EvidencePipeline
@@ -39,6 +41,7 @@ class FakeTokenizer:
     split_mode = "A"
 
     def tokenize(self, text: str) -> list[TokenEvidence]:
+        self.calls = getattr(self, "calls", 0) + 1
         self.last_text = text
         return [
             TokenEvidence("わたし", "私", "わたし", ("名詞",), 0, 3),
@@ -134,6 +137,20 @@ class EvidencePipelineTests(unittest.TestCase):
         self.assertEqual(analysis["statistics"]["token_count"], 3)
         self.assertEqual(analysis["statistics"]["known_token_count"], 2)
         self.assertEqual(analysis, direct_analysis)
+
+    def test_fact_modules_read_one_shared_tokenisation(self) -> None:
+        tokenizer = FakeTokenizer()
+        bundle = EvidencePipeline(
+            speech_extractor=FluencySpeechEvidenceExtractor(FakeSpeechExtractor()),
+            linguistic_extractor=LinguisticEvidenceExtractor(tokenizer),
+        ).build(Path("sample.mp3"))
+        vocabulary = JLPTVocabulary.from_entries([], version="test-dictionary")
+
+        RangeExtractor(_FailingTokenizer(), vocabulary).analyze_linguistic_evidence(bundle.linguistic)
+        AccuracyModule().collect(bundle)
+        CoherenceModule().collect(bundle)
+
+        self.assertEqual(tokenizer.calls, 1)
 
     def test_range_tokenized_word_keeps_its_public_lexical_property(self) -> None:
         self.assertTrue(TokenizedWord("寿司", "寿司", "すし", ("名詞",)).is_lexical)

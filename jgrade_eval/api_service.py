@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from .accuracy import AccuracyModule
 from .audio_pipeline import FluencyExtractor
+from .coherence import CoherenceModule
 from .deliberation import deliberate_auto_cefr
 from .evidence import EvidencePipeline, FluencySpeechEvidenceExtractor, LinguisticEvidenceExtractor
 from .evidence.speech import objective_data_from_evidence
@@ -30,7 +31,7 @@ TASK_RATING_ORDER = {
 }
 
 DEFAULT_FACT_MODULES = frozenset({"fluency", "range"})
-SUPPORTED_FACT_MODULES = frozenset({"fluency", "range", "accuracy"})
+SUPPORTED_FACT_MODULES = frozenset({"fluency", "range", "accuracy", "coherence"})
 
 
 def evaluate_speech_level(
@@ -83,6 +84,10 @@ def evaluate_speech_level(
     if "accuracy" in active_modules:
         accuracy_data = AccuracyModule().collect(evidence).to_dict()
         objective_data["accuracy_data"] = accuracy_data
+    coherence_data: dict[str, Any] | None = None
+    if "coherence" in active_modules:
+        coherence_data = CoherenceModule().collect(evidence).to_dict()
+        objective_data["coherence_data"] = coherence_data
     objective_data["evidence_schema_version"] = evidence.schema_version
     sample_id = external_id or evaluation_id
     roleplay_input = {
@@ -100,6 +105,8 @@ def evaluate_speech_level(
         roleplay_input["range_data"] = range_data
     if accuracy_data is not None:
         roleplay_input["accuracy_data"] = accuracy_data
+    if coherence_data is not None:
+        roleplay_input["coherence_data"] = coherence_data
 
     judge_failures: list[JudgeFailure] = []
     if judge_mode == "mock":

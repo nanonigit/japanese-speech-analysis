@@ -40,13 +40,13 @@ CoherenceFactPacket
 
 ### 2. Candidate units
 
-Start at token zero and create a boundary after:
+Start at token zero and create a boundary:
 
-1. a connective token that begins a new relation; or
-2. a token matching a conservative terminal/polite pattern; or
-3. the end of the transcript.
+1. immediately **before** a connective token that begins a new relation; or
+2. immediately **after** a token matching a conservative terminal/polite pattern, unless that next token is itself a connective boundary; or
+3. at the end of the transcript.
 
-The algorithm keeps the source token and character offsets. If no conservative pattern is found, it emits exactly one transcript-wide candidate unit. This fail-safe is preferable to fabricating sentence segmentation.
+The connective therefore remains in the unit it introduces. The algorithm keeps the source token and character offsets. If no conservative pattern is found, it emits exactly one transcript-wide candidate unit. This fail-safe is preferable to fabricating sentence segmentation.
 
 ### 3. Repetition
 
