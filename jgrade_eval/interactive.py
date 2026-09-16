@@ -7,7 +7,6 @@ import subprocess
 from getpass import getpass
 from pathlib import Path
 
-from .accuracy import AccuracyModule
 from .audio_pipeline import FluencyExtractor, ObjectiveExtractionError
 from .deliberation import AutoCefrDeliberation, deliberate_auto_cefr
 from .evidence import (
@@ -17,6 +16,7 @@ from .evidence import (
     LinguisticEvidenceExtractor,
 )
 from .evidence.speech import objective_data_from_evidence
+from .fact_modules import INTERACTIVE_FACT_MODULES, run_fact_modules
 from .live_judges import (
     PROVIDER_KEY_ENVS,
     PROVIDER_MODEL_OPTIONS,
@@ -27,7 +27,6 @@ from .live_judges import (
     validate_provider_key,
 )
 from .mock_judges import judge_auto_cefr_with_mock_panel
-from .range import RangeExtractor
 from .models import (
     CEFR_LEVELS,
     AutoLevelDecision,
@@ -79,29 +78,17 @@ def run_interactive(
         raise SystemExit(2) from exc
     print_common_evidence_data(evidence)
 
-    print("\n[2/5] Rangeモジュール: 単語分割・辞書照合・語彙統計を計算中...")
+    print("\n[2/5] Factモジュール: 共有EvidenceからRange・Accuracy・Coherenceを抽出中...")
     try:
-        range_extractor = RangeExtractor.default()
-        analyze_evidence = getattr(type(range_extractor), "analyze_linguistic_evidence", None)
-        range_data = (
-            analyze_evidence(range_extractor, evidence.linguistic)
-            if callable(analyze_evidence)
-            else range_extractor.analyze(evidence.speech.raw_transcript_hiragana)
+        fact_modules = run_fact_modules(
+            evidence,
+            selected_modules=INTERACTIVE_FACT_MODULES,
         )
     except Exception as exc:
-        print("\n[エラー] Range客観データの抽出に失敗しました。")
+        print("\n[エラー] Factモジュールの客観データ抽出に失敗しました。")
         print(str(exc))
         raise SystemExit(2) from exc
-    objective_data = {**objective_data, "range_data": range_data}
-
-    print("\n[3/5] Accuracyモジュール: 共有Evidenceから時刻・形態素観測を抽出中...")
-    try:
-        accuracy_data = AccuracyModule().collect(evidence).to_dict()
-    except Exception as exc:
-        print("\n[エラー] Accuracy客観データの抽出に失敗しました。")
-        print(str(exc))
-        raise SystemExit(2) from exc
-    objective_data = {**objective_data, "accuracy_data": accuracy_data}
+    objective_data = fact_modules.merge_objective_data(objective_data)
     print_objective_data(objective_data)
     profile = load_profile(profile_path) if profile_path else None
     review_sample_id = make_review_sample_id(audio_path, objective_data)
@@ -119,11 +106,10 @@ def run_interactive(
         "jfs_can_do_criteria": [],
         "raw_transcript_hiragana": objective_data["raw_transcript_hiragana"],
         "fluency_metrics": objective_data["fluency_metrics"],
-        "range_data": objective_data["range_data"],
-        "accuracy_data": objective_data["accuracy_data"],
         "speaker_metadata": {},
         "optional_expected_information": [],
     }
+    roleplay_input = fact_modules.add_packets_to_roleplay_input(roleplay_input)
 
     judge_count = len(provider_specs) if judge_mode == "live" and provider_specs else 3
     print(f"\n[4/5] {judge_count} JudgeでCEFRレベルを自動推定中...")
@@ -700,6 +686,32 @@ def print_objective_data(objective_data: dict) -> None:
     if unavailable_capabilities:
         print(f"未提供の能力: {', '.join(str(item) for item in unavailable_capabilities)}")
     print("注: Accuracyモジュールは観測事実のみを出力します。正誤・発音診断・レベル評価は行いません。")
+
+    coherence_data = objective_data.get("coherence_data")
+    if not isinstance(coherence_data, dict):
+        return
+    connective_observations = coherence_data.get("connective_observations", [])
+    candidate_units = coherence_data.get("candidate_units", [])
+    repetition_observations = coherence_data.get("repetition_observations", [])
+    pause_observations = coherence_data.get("pause_observations", [])
+    unavailable_capabilities = coherence_data.get("unavailable_capabilities", [])
+
+    print("\n=== Coherence客観データ ===")
+    print("生成元: Coherenceモジュール（共有Evidence、LLM不使用）")
+    print(f"接続表現観測: {len(connective_observations)}件")
+    if connective_observations:
+        rendered_connectives = " / ".join(
+            f"{item.get('surface', '')}:{item.get('category', 'other')}"
+            for item in connective_observations
+            if isinstance(item, dict)
+        )
+        print(f"接続カテゴリ: {rendered_connectives}")
+    print(f"候補談話単位: {len(candidate_units)}件（ASRと保守的ルール由来）")
+    print(f"単位間の語彙反復: {len(repetition_observations)}語")
+    print(f"ポーズ観測: {len(pause_observations)}区間（単位には未紐付け）")
+    if unavailable_capabilities:
+        print(f"未提供の能力: {', '.join(str(item) for item in unavailable_capabilities)}")
+    print("注: Coherenceモジュールは観測事実のみを出力します。候補境界や反復は品質・正誤・レベルの判定ではありません。")
 
 
 def print_judge_results(judge_results: list[JudgeResult]) -> None:

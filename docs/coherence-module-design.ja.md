@@ -71,7 +71,7 @@ KWJAは、日本語の係り受け、共参照、談話関係の予測を出せ�
 
 `SUPPORTED_FACT_MODULES` に `"coherence"` を加えますが、`DEFAULT_FACT_MODULES` は変えません。選択時だけ `evaluate_speech_level` が `coherence_data` を `objective_data` と `roleplay_input` に入れます。未選択なら両方のキーは存在しません。Judgeプロンプトは候補単位、接続カテゴリ、反復、未提供能力が観測事実であり、単独で誤りやレベル根拠にしないことを明記します。
 
-最初のcore/API実装では対話コンソールを変えません。将来の明示的な `--fact-modules` 選択が同じモジュールランナーを使い、選択時だけ `=== Coherence客観データ ===` を表示します。
+対話コンソールはAPIと同じfact-module runnerを使います。ターミナルの明示的な表示プロファイルは実装済みの全事実モジュールを選択し、`=== Coherence客観データ ===` を表示します。APIは応答互換性のため過去のデフォルト選択を維持します。
 
 ## 失敗時の挙動
 

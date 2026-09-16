@@ -73,7 +73,7 @@ KWJA is the first research candidate, because it can provide Japanese dependency
 
 Add `"coherence"` to `SUPPORTED_FACT_MODULES`, but leave `DEFAULT_FACT_MODULES` untouched. When selected, `evaluate_speech_level` adds `coherence_data` to `objective_data` and `roleplay_input`; otherwise neither key exists. The Judge prompt must say that candidate units, connective categories, repetitions, and missing capabilities are observations, not evidence of error or level by themselves.
 
-The existing interactive console remains unchanged in the first core/API change. A later explicit `--fact-modules` console selection should use the same module runner and print `=== Coherence客観データ ===` only when selected.
+The interactive console uses the same fact-module runner as the API. Its explicit console profile selects every implemented fact module and prints `=== Coherence客観データ ===`; the API retains its historical default selection for response compatibility.
 
 ## Failure behavior
 
