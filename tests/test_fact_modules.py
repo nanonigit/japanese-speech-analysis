@@ -68,6 +68,22 @@ class FactModuleRunnerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unsupported fact module"):
             run_fact_modules(self.bundle, selected_modules=("unknown",))
 
+    def test_runner_reports_each_selected_collector_in_deterministic_order(self) -> None:
+        from jgrade_eval.fact_modules import run_fact_modules
+
+        started: list[str] = []
+        completed: list[str] = []
+        run_fact_modules(
+            self.bundle,
+            selected_modules=("coherence", "accuracy", "range"),
+            range_extractor=_FakeRangeExtractor(),
+            on_module_start=started.append,
+            on_module_result=lambda module_id, _packet: completed.append(module_id),
+        )
+
+        self.assertEqual(started, ["range", "accuracy", "coherence"])
+        self.assertEqual(completed, ["range", "accuracy", "coherence"])
+
 
 class _FakeRangeExtractor:
     def analyze_linguistic_evidence(self, linguistic: LinguisticEvidence) -> dict:
