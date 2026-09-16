@@ -856,12 +856,14 @@ class InteractiveCliTests(unittest.TestCase):
         range_extractor.analyze.assert_called_once_with("わたしはすしがすきです")
         self.assertEqual(judge_inputs[0]["range_data"], range_data)
         self.assertEqual(judge_inputs[0]["accuracy_data"]["module_id"], "accuracy")
+        self.assertEqual(judge_inputs[0]["coherence_data"]["module_id"], "coherence")
         prompt_level.assert_not_called()
         self.assertIn("[1/5] Fluencyモジュール", output.getvalue())
         self.assertIn("[2/5] Rangeモジュール", output.getvalue())
         self.assertIn("[3/5] Accuracyモジュール", output.getvalue())
         self.assertIn("=== 共通Evidence層客観データ ===", output.getvalue())
         self.assertIn("=== Accuracy客観データ ===", output.getvalue())
+        self.assertIn("=== Coherence客観データ ===", output.getvalue())
 
 
 class TuningTests(unittest.TestCase):
