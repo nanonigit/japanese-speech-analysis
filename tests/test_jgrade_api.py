@@ -108,6 +108,28 @@ class JGradeApiTests(unittest.TestCase):
         self.assertNotIn("range_data", result["objective_data"])
         self.assertIn("accuracy_data", judge_inputs[0])
 
+    def test_service_can_select_coherence_without_running_range(self) -> None:
+        range_extractor = FakeRangeExtractor()
+        judge_inputs: list[dict] = []
+
+        def capture_judge_input(roleplay_input: dict):
+            judge_inputs.append(roleplay_input)
+            return judge_auto_cefr_with_mock_panel(roleplay_input)
+
+        with patch("jgrade_eval.api_service.judge_auto_cefr_with_mock_panel", side_effect=capture_judge_input):
+            result = evaluate_speech_level(
+                Path("sample.mp3"),
+                judge_mode="mock",
+                extractor=FakeExtractor(),
+                range_extractor=range_extractor,
+                selected_modules=("coherence",),
+            )
+
+        self.assertEqual(range_extractor.transcripts, [])
+        self.assertIn("coherence_data", result["objective_data"])
+        self.assertNotIn("range_data", result["objective_data"])
+        self.assertIn("coherence_data", judge_inputs[0])
+
     def test_service_rejects_unknown_fact_module(self) -> None:
         with self.assertRaisesRegex(ValueError, "unsupported fact module"):
             evaluate_speech_level(
