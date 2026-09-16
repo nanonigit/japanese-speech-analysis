@@ -42,7 +42,7 @@ sequenceDiagram
         Fluency-->>Evidence: 文字起こし・VAD・ポーズ・モーラ時刻
         Evidence->>Evidence: Sudachiトークン化（1回）
         Evidence-->>Console: EvidenceBundle v1
-        Console->>Runner: run_fact_modules(evidence,<br/>Range + Accuracy + Coherence)
+        Console->>Runner: run_fact_modules(evidence,<br/>既定: 実装済み全モジュール)
         Runner->>Range: 同じ LinguisticEvidence
         Runner->>Accuracy: 同じ EvidenceBundle
         Runner->>Coherence: 同じ EvidenceBundle
@@ -56,7 +56,7 @@ sequenceDiagram
         User->>API: POST /speech-level-evaluations
         API->>Evidence: build(audio_path)
         Evidence-->>API: EvidenceBundle v1
-        API->>Runner: run_fact_modules(evidence,<br/>リクエスト選択、既定はFluency + Range)
+        API->>Runner: run_fact_modules(evidence,<br/>既定: 実装済み全モジュール)
         Runner-->>API: FactModuleRun（選択パケットのみ）
         API->>Judge: 選択パケット + 基礎事実
     end

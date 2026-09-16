@@ -1,6 +1,6 @@
 # Current Fact-Module Sequence
 
-Both entry points use `fact_modules.py` after building common evidence. The interactive console deliberately selects every implemented module and prints every resulting packet. The API retains its historical default selection for response compatibility, but uses the identical runner and packet contract.
+Both entry points use `fact_modules.py` after building common evidence. With no explicit selection, the interactive console and API both select every implemented module and use the identical runner and packet contract. A caller can still request a supported subset.
 
 ```mermaid
 sequenceDiagram
@@ -20,7 +20,7 @@ sequenceDiagram
         User->>Console: 音声を選択
         Console->>Evidence: build(audio_path)
         Evidence-->>Console: EvidenceBundle v1
-        Console->>Runner: Range + Accuracy + Coherence を選択
+        Console->>Runner: 既定: 実装済み全モジュールを選択
         Runner->>Range: 共有 LinguisticEvidence
         Runner->>Accuracy: 共有 EvidenceBundle
         Runner->>Coherence: 共有 EvidenceBundle
@@ -30,7 +30,7 @@ sequenceDiagram
         User->>API: 評価リクエスト
         API->>Evidence: build(audio_path)
         Evidence-->>API: EvidenceBundle v1
-        API->>Runner: リクエスト選択（既定: Fluency + Range）
+        API->>Runner: 既定: 実装済み全モジュールを選択
         Runner-->>API: 選択済み事実パケット
         API->>Judge: 基礎事実 + 選択パケット
     end

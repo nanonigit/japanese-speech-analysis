@@ -83,10 +83,11 @@ class JGradeApiTests(unittest.TestCase):
         self.assertEqual(judge_inputs[0]["range_data"], result["objective_data"]["range_data"])
         self.assertNotIn("fluency_grade", result["objective_data"]["fluency_metrics"])
         self.assertEqual(result["objective_data"]["evidence_schema_version"], "evidence.v1")
-        self.assertEqual(result["fact_modules"], ["fluency", "range"])
-        self.assertNotIn("accuracy_data", result["objective_data"])
-        self.assertNotIn("coherence_data", result["objective_data"])
-        self.assertNotIn("coherence_data", judge_inputs[0])
+        self.assertEqual(result["fact_modules"], ["accuracy", "coherence", "fluency", "range"])
+        self.assertIn("accuracy_data", result["objective_data"])
+        self.assertIn("coherence_data", result["objective_data"])
+        self.assertIn("accuracy_data", judge_inputs[0])
+        self.assertIn("coherence_data", judge_inputs[0])
 
     def test_service_can_select_accuracy_without_running_range(self) -> None:
         range_extractor = FakeRangeExtractor()

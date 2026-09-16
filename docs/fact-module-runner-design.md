@@ -12,7 +12,7 @@ EvidenceBundle
 
 `FactModuleRun` contains only selected packet keys (`range_data`, `accuracy_data`, `coherence_data`). Fluency remains the base facts generated from `SpeechEvidence`; it is included in selections for consistent public reporting but has no second collector.
 
-The runner defines API defaults and supported module names. The console imports the same supported set as its explicit display profile. This is a presentation policy difference, not a second collection implementation: API retains a stable historical response by default, while the console deliberately displays all available facts.
+The runner defines supported module names and the common default: every implemented module. The API and console therefore execute the same module set when no selection is supplied. A caller may still name any supported subset to run a module alone or combine selected modules; this is selection policy, not a second collection implementation.
 
 The interactive display reads optional packet keys and prints only those present. It has no direct imports or calls to individual fact modules.
 

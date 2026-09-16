@@ -58,13 +58,14 @@ class FactModuleRunnerTests(unittest.TestCase):
         self.assertEqual(roleplay_input["coherence_data"], objective_data["coherence_data"])
         self.assertEqual(roleplay_input["range_data"], objective_data["range_data"])
 
-    def test_runner_default_preserves_api_selection_and_rejects_unknown_modules(self) -> None:
-        from jgrade_eval.fact_modules import DEFAULT_FACT_MODULES, run_fact_modules
+    def test_runner_default_selects_all_implemented_modules_and_rejects_unknown_modules(self) -> None:
+        from jgrade_eval.fact_modules import DEFAULT_FACT_MODULES, SUPPORTED_FACT_MODULES, run_fact_modules
 
         default_result = run_fact_modules(self.bundle, range_extractor=_FakeRangeExtractor())
         self.assertEqual(default_result.active_modules, DEFAULT_FACT_MODULES)
-        self.assertNotIn("accuracy_data", default_result.packets)
-        self.assertNotIn("coherence_data", default_result.packets)
+        self.assertEqual(default_result.active_modules, SUPPORTED_FACT_MODULES)
+        self.assertIn("accuracy_data", default_result.packets)
+        self.assertIn("coherence_data", default_result.packets)
         with self.assertRaisesRegex(ValueError, "unsupported fact module"):
             run_fact_modules(self.bundle, selected_modules=("unknown",))
 

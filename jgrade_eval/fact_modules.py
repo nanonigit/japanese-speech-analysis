@@ -11,8 +11,8 @@ from .evidence.models import EvidenceBundle
 from .range import RangeExtractor
 
 
-DEFAULT_FACT_MODULES = frozenset({"fluency", "range"})
 SUPPORTED_FACT_MODULES = frozenset({"fluency", "range", "accuracy", "coherence"})
+DEFAULT_FACT_MODULES = SUPPORTED_FACT_MODULES
 INTERACTIVE_FACT_MODULES = SUPPORTED_FACT_MODULES
 
 
