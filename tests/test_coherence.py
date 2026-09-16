@@ -67,7 +67,8 @@ class CoherenceModuleTests(unittest.TestCase):
             [(unit["token_start_index"], unit["token_end_index"]) for unit in data["candidate_units"]],
             [(0, 6), (6, 10)],
         )
-        self.assertEqual(data["candidate_units"][1]["boundary_derivations"], ["connective:causal"])
+        self.assertIn("connective:causal", data["candidate_units"][1]["boundary_derivations"])
+        self.assertIn("transcript_end", data["candidate_units"][-1]["boundary_derivations"])
         self.assertEqual(data["repetition_observations"][0]["dictionary_form"], "寿司")
         self.assertEqual(data["repetition_observations"][0]["unit_indexes"], [0, 1])
         self.assertEqual(data["pause_observations"], [{"start": 1.2, "end": 1.7, "duration": 0.5}])
