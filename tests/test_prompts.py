@@ -23,6 +23,25 @@ class AccuracyPromptTests(unittest.TestCase):
         self.assertIn("未較正", AUTO_CEFR_SYSTEM_PROMPT)
         self.assertIn("accuracy_data", messages["user"])
 
+    def test_coherence_facts_are_not_instructions_to_assign_quality_or_error(self) -> None:
+        messages = build_auto_cefr_judge_messages(
+            {
+                "raw_transcript_hiragana": "すしですだからたべます",
+                "fluency_metrics": {},
+                "coherence_data": {
+                    "candidate_units": [{"boundary_derivations": ["connective:causal"]}],
+                    "unavailable_capabilities": ["coreference_resolution"],
+                },
+            },
+            judge_id="A",
+            model_family="openai",
+        )
+
+        self.assertIn("`coherence_data`", AUTO_CEFR_SYSTEM_PROMPT)
+        self.assertIn("候補", AUTO_CEFR_SYSTEM_PROMPT)
+        self.assertIn("単独", AUTO_CEFR_SYSTEM_PROMPT)
+        self.assertIn("coherence_data", messages["user"])
+
 
 if __name__ == "__main__":
     unittest.main()
