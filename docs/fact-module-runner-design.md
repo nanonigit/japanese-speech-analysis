@@ -15,3 +15,5 @@ EvidenceBundle
 The runner defines API defaults and supported module names. The console imports the same supported set as its explicit display profile. This is a presentation policy difference, not a second collection implementation: API retains a stable historical response by default, while the console deliberately displays all available facts.
 
 The interactive display reads optional packet keys and prints only those present. It has no direct imports or calls to individual fact modules.
+
+`run_fact_modules` optionally emits deterministic start/result callbacks in Range, Accuracy, Coherence order. The console uses them only for progress and immediate rendering; API collection is unchanged and supplies no callbacks.

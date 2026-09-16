@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Iterable, Mapping
+from typing import Any, Callable, Iterable, Mapping
 
 from .accuracy import AccuracyModule
 from .coherence import CoherenceModule
@@ -35,12 +35,15 @@ def run_fact_modules(
     *,
     selected_modules: Iterable[str] | None = None,
     range_extractor: RangeExtractor | None = None,
+    on_module_start: Callable[[str], None] | None = None,
+    on_module_result: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> FactModuleRun:
     """Collect selected packets from one already-built EvidenceBundle."""
 
     active_modules = normalize_fact_modules(selected_modules)
     packets: dict[str, dict[str, Any]] = {}
     if "range" in active_modules:
+        _notify_start(on_module_start, "range")
         active_range_extractor = range_extractor or RangeExtractor.default()
         analyze_evidence = getattr(type(active_range_extractor), "analyze_linguistic_evidence", None)
         packets["range_data"] = (
@@ -48,10 +51,15 @@ def run_fact_modules(
             if callable(analyze_evidence)
             else active_range_extractor.analyze(evidence.speech.raw_transcript_hiragana)
         )
+        _notify_result(on_module_result, "range", packets["range_data"])
     if "accuracy" in active_modules:
+        _notify_start(on_module_start, "accuracy")
         packets["accuracy_data"] = AccuracyModule().collect(evidence).to_dict()
+        _notify_result(on_module_result, "accuracy", packets["accuracy_data"])
     if "coherence" in active_modules:
+        _notify_start(on_module_start, "coherence")
         packets["coherence_data"] = CoherenceModule().collect(evidence).to_dict()
+        _notify_result(on_module_result, "coherence", packets["coherence_data"])
     return FactModuleRun(active_modules=active_modules, packets=packets)
 
 
@@ -62,3 +70,17 @@ def normalize_fact_modules(selected_modules: Iterable[str] | None) -> frozenset[
         names = ", ".join(sorted(unknown))
         raise ValueError(f"unsupported fact module(s): {names}")
     return modules
+
+
+def _notify_start(callback: Callable[[str], None] | None, module_id: str) -> None:
+    if callback is not None:
+        callback(module_id)
+
+
+def _notify_result(
+    callback: Callable[[str, dict[str, Any]], None] | None,
+    module_id: str,
+    packet: dict[str, Any],
+) -> None:
+    if callback is not None:
+        callback(module_id, packet)

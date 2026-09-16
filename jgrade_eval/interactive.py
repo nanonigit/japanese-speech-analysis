@@ -63,7 +63,7 @@ def run_interactive(
     judge_mode, provider_specs = prompt_judge_setup(judge_mode, provider_specs or [])
     audio_path = prompt_audio_choice(list_audio_files(audio_dir))
 
-    print("\n[1/5] Fluencyモジュール: 音声からひらがな・流暢性指標を抽出中...")
+    print("\n[1/7] 共通Evidence層: 音声から共有の文字起こし・時刻・トークンを抽出中...")
     try:
         extractor = FluencyExtractor()
         evidence = EvidencePipeline(
@@ -77,19 +77,35 @@ def run_interactive(
         print(str(exc))
         raise SystemExit(2) from exc
     print_common_evidence_data(evidence)
+    print("\n[2/7] Fluencyモジュール: 共有Evidenceから流暢性の客観データを表示中...")
+    print_fluency_data(objective_data)
 
-    print("\n[2/5] Factモジュール: 共有EvidenceからRange・Accuracy・Coherenceを抽出中...")
+    module_steps = {"range": 3, "accuracy": 4, "coherence": 5}
+
+    def print_module_start(module_id: str) -> None:
+        labels = {"range": "Range", "accuracy": "Accuracy", "coherence": "Coherence"}
+        print(f"\n[{module_steps[module_id]}/7] {labels[module_id]}モジュール: 共有Evidenceから客観データを抽出中...")
+
+    def print_module_result(module_id: str, packet: dict) -> None:
+        if module_id == "range":
+            print_range_data(packet)
+        elif module_id == "accuracy":
+            print_accuracy_data(packet)
+        elif module_id == "coherence":
+            print_coherence_data(packet)
+
     try:
         fact_modules = run_fact_modules(
             evidence,
             selected_modules=INTERACTIVE_FACT_MODULES,
+            on_module_start=print_module_start,
+            on_module_result=print_module_result,
         )
     except Exception as exc:
         print("\n[エラー] Factモジュールの客観データ抽出に失敗しました。")
         print(str(exc))
         raise SystemExit(2) from exc
     objective_data = fact_modules.merge_objective_data(objective_data)
-    print_objective_data(objective_data)
     profile = load_profile(profile_path) if profile_path else None
     review_sample_id = make_review_sample_id(audio_path, objective_data)
 
@@ -112,7 +128,7 @@ def run_interactive(
     roleplay_input = fact_modules.add_packets_to_roleplay_input(roleplay_input)
 
     judge_count = len(provider_specs) if judge_mode == "live" and provider_specs else 3
-    print(f"\n[4/5] {judge_count} JudgeでCEFRレベルを自動推定中...")
+    print(f"\n[6/7] {judge_count} JudgeでCEFRレベルを自動推定中...")
     if judge_mode == "mock":
         auto_results = judge_auto_cefr_with_mock_panel(roleplay_input)
         judge_failures = []
@@ -142,7 +158,7 @@ def run_interactive(
 
     print_auto_level_judge_results(auto_results)
 
-    print("\n[5/5] CEFR協議を計算中...")
+    print("\n[7/7] CEFR協議を計算中...")
     deliberation = deliberate_auto_cefr(
         auto_results,
         objective_data=objective_data,
@@ -696,6 +712,90 @@ def print_objective_data(objective_data: dict) -> None:
     pause_observations = coherence_data.get("pause_observations", [])
     unavailable_capabilities = coherence_data.get("unavailable_capabilities", [])
 
+    print("\n=== Coherence客観データ ===")
+    print("生成元: Coherenceモジュール（共有Evidence、LLM不使用）")
+    print(f"接続表現観測: {len(connective_observations)}件")
+    if connective_observations:
+        rendered_connectives = " / ".join(
+            f"{item.get('surface', '')}:{item.get('category', 'other')}"
+            for item in connective_observations
+            if isinstance(item, dict)
+        )
+        print(f"接続カテゴリ: {rendered_connectives}")
+    print(f"候補談話単位: {len(candidate_units)}件（ASRと保守的ルール由来）")
+    print(f"単位間の語彙反復: {len(repetition_observations)}語")
+    print(f"ポーズ観測: {len(pause_observations)}区間（単位には未紐付け）")
+    if unavailable_capabilities:
+        print(f"未提供の能力: {', '.join(str(item) for item in unavailable_capabilities)}")
+    print("注: Coherenceモジュールは観測事実のみを出力します。候補境界や反復は品質・正誤・レベルの判定ではありません。")
+
+
+def print_fluency_data(objective_data: dict) -> None:
+    metrics = objective_data["fluency_metrics"]
+    transcript = objective_data["raw_transcript_hiragana"]
+    print("\n=== Fluency客観データ ===")
+    print("生成元: Fluencyモジュール")
+    print(f"audio: {objective_data['audio_path']}")
+    print(f"STT: {objective_data['stt_model']}")
+    print(f"VAD: {objective_data['vad_model']}")
+    print(f"ひらがな: {transcript[:240]}{'...' if len(transcript) > 240 else ''}")
+    print(f"音声長: {metrics['audio_duration_sec']}秒")
+    print(f"発話時間: {metrics['speech_sec']}秒 / 発話率: {metrics['speech_ratio_pct']}%")
+    print(f"ポーズ: {metrics['pause_count']}回 / 平均 {metrics['avg_pause_sec']}秒 / 最長 {metrics['max_pause_sec']}秒")
+    print(f"モーラ: {metrics['mora_count']} / {metrics['mora_per_sec']} モーラ/秒")
+    print("注: Fluencyモジュールは事実データのみを出力します。レベル評価は後段のJudgeが行います。")
+    if objective_data["top_pauses"]:
+        print("長いポーズ:")
+        for pause in objective_data["top_pauses"]:
+            print(f"  {pause['start']}〜{pause['end']}秒 ({pause['duration']}秒)")
+
+
+def print_range_data(range_data: dict) -> None:
+    statistics = range_data.get("statistics", {})
+    distribution = range_data.get("jlpt_distribution", {})
+    print("\n=== Range客観データ ===")
+    print("生成元: Rangeモジュール（SudachiPy + ローカルJLPT辞書、LLM不使用）")
+    print(f"Tokenizer: {range_data.get('tokenizer_version', 'unknown')} / split_mode={range_data.get('split_mode', 'unknown')}")
+    print(f"辞書: {range_data.get('dictionary_version', 'unknown')}")
+    print(f"トークン: 全{statistics.get('token_count', 0)} / 語彙{statistics.get('lexical_token_count', 0)} / ユニーク見出し語{statistics.get('unique_lemma_count', 0)}")
+    print(f"語彙TTR: {statistics.get('ttr', 0.0)}")
+    print(f"辞書照合: 既知{statistics.get('known_token_count', 0)} / 未知{statistics.get('unknown_token_count', 0)} (未知率 {statistics.get('unknown_token_rate', 0.0)})")
+    print(f"同音異義語候補あり: {range_data.get('ambiguity_count', 0)}語")
+    print("JLPT語彙分布:")
+    for level in ("N5", "N4", "N3", "N2", "N1"):
+        level_counts = distribution.get(level, {}) if isinstance(distribution, dict) else {}
+        print(f"  JLPT {level}: token={level_counts.get('token_count', 0)} / unique_lemma={level_counts.get('unique_lemma_count', 0)}")
+
+
+def print_accuracy_data(accuracy_data: dict) -> None:
+    asr_observations = accuracy_data.get("asr_observations", [])
+    morphology_observations = accuracy_data.get("morphology_observations", [])
+    reference_differences = accuracy_data.get("reference_differences", [])
+    unavailable_capabilities = accuracy_data.get("unavailable_capabilities", [])
+    pattern_counts = Counter(
+        pattern_id
+        for observation in morphology_observations
+        if isinstance(observation, dict)
+        for pattern_id in observation.get("pattern_ids", [])
+    )
+    print("\n=== Accuracy客観データ ===")
+    print("生成元: Accuracyモジュール（共有Evidence、LLM不使用）")
+    print(f"ASR時刻観測: {len(asr_observations)}モーラ（CTC確率は未較正）")
+    print(f"形態素観測: {len(morphology_observations)}トークン")
+    if pattern_counts:
+        print(f"局所形態素パターン: {' / '.join(f'{pattern_id}={count}' for pattern_id, count in sorted(pattern_counts.items()))}")
+    print(f"参照文との差分: {len(reference_differences)}件（参照文未指定なら0件）")
+    if unavailable_capabilities:
+        print(f"未提供の能力: {', '.join(str(item) for item in unavailable_capabilities)}")
+    print("注: Accuracyモジュールは観測事実のみを出力します。正誤・発音診断・レベル評価は行いません。")
+
+
+def print_coherence_data(coherence_data: dict) -> None:
+    connective_observations = coherence_data.get("connective_observations", [])
+    candidate_units = coherence_data.get("candidate_units", [])
+    repetition_observations = coherence_data.get("repetition_observations", [])
+    pause_observations = coherence_data.get("pause_observations", [])
+    unavailable_capabilities = coherence_data.get("unavailable_capabilities", [])
     print("\n=== Coherence客観データ ===")
     print("生成元: Coherenceモジュール（共有Evidence、LLM不使用）")
     print(f"接続表現観測: {len(connective_observations)}件")

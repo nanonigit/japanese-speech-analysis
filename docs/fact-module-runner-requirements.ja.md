@@ -10,6 +10,7 @@
 - モジュール選択、検証、Range の Evidence 消費、パケット組み立ては runner のみに置く。
 - API は後方互換性のため、従来の Fluency / Range デフォルト選択を維持する。
 - 対話ターミナルは実装済みの事実モジュールすべてを明示選択し、従来の Range / Accuracy に加えて Coherence も表示する。
+- ターミナル進捗は、共通 Evidence、Fluency、Range、Accuracy、Coherence、Judge、協議の順とする。各モジュールのパケットは、その収集完了直後に表示する。
 - 両方の呼び出し元は runner 結果から Judge 入力を組み立て、選択済みパケットは呼び出し元固有の条件分岐なしでコピーする。
 - 未選択パケットは客観データと Judge 入力の両方に存在しない。
 - `EvidenceBundle`、Fluency、Range、Accuracy、Coherence の抽出アルゴリズムは変更しない。

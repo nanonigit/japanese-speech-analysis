@@ -10,6 +10,7 @@ Use one fact-module execution path after `EvidenceBundle` creation. The API and 
 - Module selection, validation, Range evidence consumption, and packet assembly exist only in the runner.
 - The API preserves its existing default selection of Fluency and Range for backward-compatible responses.
 - The interactive console explicitly requests all implemented fact modules, so it continues to show Range and Accuracy and additionally shows Coherence.
+- Terminal progress is ordered as shared Evidence, Fluency, Range, Accuracy, Coherence, Judge, and deliberation. Each module packet is displayed immediately after that collector completes.
 - Both callers construct Judge input from the runner result; selected packet keys are copied automatically without caller-specific module conditionals.
 - Unselected packets are absent from both objective data and Judge input.
 - No change to `EvidenceBundle`, Fluency, Range, Accuracy, or Coherence extraction algorithms.
